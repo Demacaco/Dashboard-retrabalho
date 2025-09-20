@@ -173,36 +173,42 @@ async function fetchData() {
             date: new Date(item.date).toISOString().split('T')[0] 
         }));
 
-        initializeApp();
-    } catch (error) {
-        console.error("Falha ao buscar dados:", error);
-        document.getElementById('loading-overlay').innerHTML = `<p class="text-red-400">Erro ao carregar dados. Verifique a URL do script e as permissões da planilha (deve ser 'Qualquer pessoa').</p>`;
-    }
-}
-        
         // Função para inicializar o dashboard após os dados serem carregados
-        function initializeApp() {
-            document.getElementById('loading-overlay').style.display = 'none';
-            document.getElementById('dashboard-content').classList.remove('hidden');
+function initializeApp() {
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('dashboard-content').classList.remove('hidden');
 
-            setupDateFilters();
-            updateDashboard('all');
-            renderTrendChart();
-            
-            document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
-                let dataToSummarize = rawData;
-                 if(activeDateFilter !== 'all') {
-                    dataToSummarize = rawData.filter(item => item.date === activeDateFilter);
-                }
-                const skuSummary = dataToSummarize.reduce((acc, item) => {
-                    acc[item.sku] = (acc[item.sku] || 0) + item.quantity;
-                    return acc;
-                }, {});
+    setupDateFilters();
+    updateDashboard('all');
+    renderTrendChart();
 
-                currentSkuSort = currentSkuSort === 'quantity' ? 'alphabetical' : 'quantity';
-                document.getElementById('sort-sku-chart').textContent = currentSkuSort === 'quantity' ? 'Ordenar por SKU' : 'Ordenar por Qtd.';
-                renderSkuChart(skuSummary, currentSkuSort);
-            });
+    // Adiciona a data e hora da atualização no rodapé
+    document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
+
+    // Configura o que acontece ao clicar no botão de ordenar
+    document.getElementById('sort-sku-chart').addEventListener('click', () => {
+        let dataToSummarize = rawData;
+        if(activeDateFilter !== 'all') {
+            dataToSummarize = rawData.filter(item => item.date === activeDateFilter);
+        }
+        const skuSummary = dataToSummarize.reduce((acc, item) => {
+            acc[item.sku] = (acc[item.sku] || 0) + item.quantity;
+            return acc;
+        }, {});
+
+        currentSkuSort = currentSkuSort === 'quantity' ? 'alphabetical' : 'quantity';
+        document.getElementById('sort-sku-chart').textContent = currentSkuSort === 'quantity' ? 'Ordenar por SKU' : 'Ordenar por Qtd.';
+        renderSkuChart(skuSummary, currentSkuSort);
+    });
+    
+    // Configura o que acontece ao clicar nos filtros de data
+    document.getElementById('date-filters-container').addEventListener('click', (e) => {
+        if (e.target.classList.contains('filter-btn')) {
+            const date = e.target.dataset.date;
+            updateDashboard(date);
+        }
+    });
+}
             
             document.getElementById('date-filters-container').addEventListener('click', (e) => {
                 if (e.target.classList.contains('filter-btn')) {
