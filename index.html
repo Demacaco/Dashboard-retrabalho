@@ -144,8 +144,9 @@
         </main>
         
         <footer class="text-center mt-12 text-gray-500 text-sm">
-            <p>Dashboard atualizado dinamicamente.</p>
-        </footer>
+    <p>ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025 | v1.1</p>
+    <p>Última atualização: <span id="update-timestamp">Carregando...</span></p>
+</footer>
     </div>
 
     <script>
@@ -188,7 +189,7 @@ async function fetchData() {
             updateDashboard('all');
             renderTrendChart();
             
-            document.getElementById('sort-sku-chart').addEventListener('click', () => {
+            document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
                 let dataToSummarize = rawData;
                  if(activeDateFilter !== 'all') {
                     dataToSummarize = rawData.filter(item => item.date === activeDateFilter);
