@@ -150,7 +150,7 @@
 
     <script>
         // ❗️ IMPORTANTE: Substitua a linha abaixo pela URL da sua implantação do App da Web do Google Apps Script
-        const const const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUt7IZOuthM496XWRV2HRTPSRBMoLba-uQlqRMX7PcAlxyveEdElLEIL61zbV-Q_q/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCUt7IZOuthM496XWRV2HRTPSRBMoLba-uQlqRMX7PcAlxyveEdElLEIL61zbV-Q_q/exec";
 
 let rawData = [];
 let skuChartInstance, collectorChartInstance, trendChartInstance, hourlyChartInstance;
@@ -160,8 +160,7 @@ let activeDateFilter = 'all';
 // Função principal para buscar dados da planilha
 async function fetchData() {
     try {
-
-            try {
+        const response = await fetch(SCRIPT_-URL);
                 const response = await fetch(SCRIPT_URL);
                 if (!response.ok) {
                     throw new Error(`Erro na rede: ${response.statusText}`);
