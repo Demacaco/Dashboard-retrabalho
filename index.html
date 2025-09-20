@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -10,12 +10,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Midnight Slate -->
-    <!-- Application Structure Plan: Major UI/UX overhaul to a dark theme for a modern analytical feel. Maintained the top-down information flow (KPIs -> Time Analysis -> Specifics). Replaced the standard collector pie chart with a more intuitive and visually engaging custom HTML card layout, featuring icons and progress bars. This change enhances comparability between collectors and aligns with modern BI design trends. -->
+    <!-- Application Structure Plan: This version introduces a critical evolution: dynamic data loading. The SPA no longer holds static data. It now fetches live data from the Google Sheet via a dedicated Apps Script function upon loading. This transforms the dashboard from a static report into a live, auto-updating BI tool. The information architecture and UI remain the same, but the data layer is now dynamic. -->
     <!-- Visualization & Content Choices: 
-        - Dark Theme: Goal: Improve Aesthetics/UX. Method: Complete color palette change using Tailwind CSS.
-        - Section Icons: Goal: Improve Navigation/Clarity. Method: Embedded SVG icons next to section titles.
-        - Cleaner Charts: Goal: Improve Data Focus. Method: Removed grid lines from all Chart.js instances. Interaction: No change. Justification: Reduces visual noise, making data patterns easier to see.
-        - Collector Chart Replacement: Goal: Enhance Comparison/Visuals. Method: Replaced Chart.js donut chart with a custom HTML/Flexbox layout of cards. Each card contains an SVG icon, collector name, stats, and a progress bar. Justification: A standard pie/donut chart is less effective for comparing precise values. This card layout is clearer, more modern, and incorporates the requested iconography directly.
+        - Data Source: Changed from a hardcoded JS array to a live `fetch` call to a Google Sheet Web App. Goal: Create a live, dynamic dashboard.
+        - Loading State: A simple loading indicator is added to inform the user that data is being fetched. Goal: Improve UX during data load.
+        - All other visualizations and interactions are preserved but now operate on the live data fetched from the spreadsheet, making the entire application dynamic.
         - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
     -->
     <style>
@@ -36,11 +35,31 @@
             background-color: #3b82f6;
             color: white;
         }
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(17, 24, 39, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-size: 1.2rem;
+            padding: 1rem;
+            text-align: center;
+        }
     </style>
 </head>
 <body class="text-gray-300">
 
-    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+    <div id="loading-overlay">
+        <p>A carregar dados ao vivo da planilha...</p>
+    </div>
+
+    <div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
         
         <header class="text-center mb-12">
             <h1 class="text-3xl md:text-4xl font-bold text-white">Dashboard de Retrabalhos</h1>
@@ -65,7 +84,7 @@
                         <p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p>
                     </div>
                     <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg transition hover:transform hover:-translate-y-1">
-                        <h3 class="text-lg font-semibold text-gray-400">Total de Registros</h3>
+                        <h3 class="text-lg font-semibold text-gray-400">Total de Registos</h3>
                         <p id="total-entries" class="text-4xl font-bold text-blue-400 mt-2">0</p>
                     </div>
                     <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg transition hover:transform hover:-translate-y-1">
@@ -91,7 +110,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-yellow-400"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                     Análise de Retrabalhos por Hora do Dia
                 </h2>
-                <p class="text-gray-400 mb-4">Horários de pico em que os retrabalhos são registrados, ajudando a identificar padrões de produtividade.</p>
+                <p class="text-gray-400 mb-4">Horários de pico em que os retrabalhos são registados, ajudando a identificar padrões de produtividade.</p>
                 <div class="chart-container">
                     <canvas id="hourlyChart"></canvas>
                 </div>
@@ -116,7 +135,7 @@
                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-red-400"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                         Atividade por Coletor
                     </h2>
-                    <p class="text-gray-400 mb-4">Registros feitos por cada operador no período selecionado.</p>
+                    <p class="text-gray-400 mb-4">Registos feitos por cada operador no período selecionado.</p>
                     <div id="collector-container" class="space-y-4 mt-6">
                     </div>
                 </div>
@@ -125,324 +144,54 @@
         </main>
         
         <footer class="text-center mt-12 text-gray-500 text-sm">
-            <p>Dashboard atualizado em 19 de Setembro de 2025.</p>
+            <p>Dashboard atualizado dinamicamente.</p>
         </footer>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const rawData = [
-                { timestamp: '2025-09-15 07:32:26', date: '2025-09-15', collector: 1, sku: '94612-36H00-000', quantity: 350 }, { timestamp: '2025-09-15 07:37:39', date: '2025-09-15', collector: 1, sku: '68226h2j020ht16', quantity: 20 },
-                { timestamp: '2025-09-15 07:39:35', date: '2025-09-15', collector: 1, sku: '43576-48h00-000', quantity: 80 }, { timestamp: '2025-09-15 07:40:51', date: '2025-09-15', collector: 1, sku: '68125h2j110ht11', quantity: 20 },
-                { timestamp: '2025-09-15 07:45:02', date: '2025-09-15', collector: 1, sku: '68133h7a110hrb9', quantity: 20 }, { timestamp: '2025-09-15 07:51:47', date: '2025-09-15', collector: 1, sku: '44256h12910h000', quantity: 15 },
-                { timestamp: '2025-09-15 07:58:53', date: '2025-09-15', collector: 1, sku: '43710z2a200h110', quantity: 150 }, { timestamp: '2025-09-15 09:03:58', date: '2025-09-15', collector: 2, sku: '43610Z2A200H110', quantity: 150 },
-                { timestamp: '2025-09-15 13:36:56', date: '2025-09-15', collector: 2, sku: '56278Z45F30H100', quantity: 240 }, { timestamp: '2025-09-15 13:47:45', date: '2025-09-15', collector: 2, sku: '1174200023000', quantity: 12 },
-                { timestamp: '2025-09-15 13:50:56', date: '2025-09-15', collector: 2, sku: '1020464059000', quantity: 7 }, { timestamp: '2025-09-15 14:29:24', date: '2025-09-15', collector: 2, sku: '11143-00012-000', quantity: 10 },
-                { timestamp: '2025-09-15 14:34:29', date: '2025-09-15', collector: 2, sku: '374002120010000', quantity: 7 }, { timestamp: '2025-09-15 14:43:01', date: '2025-09-15', collector: 2, sku: 'P11600039160000', quantity: 5 },
-                { timestamp: '2025-09-15 14:45:09', date: '2025-09-15', collector: 2, sku: '374002120010000', quantity: 4 }, { timestamp: '2025-09-15 14:53:44', date: '2025-09-15', collector: 2, sku: '379203110010000', quantity: 2 },
-                { timestamp: '2025-09-15 15:58:32', date: '2025-09-15', collector: 2, sku: '11542-00011-000', quantity: 65 }, { timestamp: '2025-09-16 07:20:34', date: '2025-09-16', collector: 2, sku: '610211030000000', quantity: 2 },
-                { timestamp: '2025-09-16 07:34:15', date: '2025-09-16', collector: 2, sku: '374001020000000', quantity: 3 }, { timestamp: '2025-09-16 07:37:22', date: '2025-09-16', collector: 2, sku: '823082080010000', quantity: 3 },
-                { timestamp: '2025-09-16 07:40:36', date: '2025-09-16', collector: 2, sku: '374001020000000', quantity: 3 }, { timestamp: '2025-09-16 07:42:01', date: '2025-09-16', collector: 2, sku: '395003010010100', quantity: 1 },
-                { timestamp: '2025-09-16 07:52:19', date: '2025-09-16', collector: 2, sku: '641151030000000', quantity: 3 }, { timestamp: '2025-09-16 07:56:31', date: '2025-09-16', collector: 2, sku: '641141030000000', quantity: 3 },
-                { timestamp: '2025-09-16 07:58:31', date: '2025-09-16', collector: 2, sku: '41004J000000700', quantity: 2 }, { timestamp: '2025-09-16 08:03:39', date: '2025-09-16', collector: 2, sku: '440031070000000', quantity: 2 },
-                { timestamp: '2025-09-16 08:07:15', date: '2025-09-16', collector: 2, sku: '440071070000000', quantity: 2 }, { timestamp: '2025-09-16 08:16:51', date: '2025-09-16', collector: 2, sku: '441102061010000', quantity: 2 },
-                { timestamp: '2025-09-16 08:24:12', date: '2025-09-16', collector: 2, sku: '81110107F001000', quantity: 1 }, { timestamp: '2025-09-16 08:29:53', date: '2025-09-16', collector: 2, sku: '245030040000000', quantity: 3 },
-                { timestamp: '2025-09-16 14:32:12', date: '2025-09-16', collector: 2, sku: '39208-AKC3-EZ5', quantity: 62 }, { timestamp: '2025-09-16 14:42:38', date: '2025-09-16', collector: 2, sku: '90107-ACD5-E00', quantity: 85 },
-                { timestamp: '2025-09-16 16:08:13', date: '2025-09-16', collector: 2, sku: '90106-KFAF-900', quantity: 710 }, { timestamp: '2025-09-16 16:40:07', date: '2025-09-16', collector: 2, sku: '90541-PUA5-E00', quantity: 5 },
-                { timestamp: '2025-09-17 11:43:50', date: '2025-09-17', collector: 2, sku: '11901-00408-051', quantity: 36 }, { timestamp: '2025-09-17 11:44:07', date: '2025-09-17', collector: 2, sku: '12264-00174-000', quantity: 144 },
-                { timestamp: '2025-09-17 13:22:33', date: '2025-09-17', collector: 2, sku: '11901-00408-051', quantity: 72 }, { timestamp: '2025-09-17 13:25:35', date: '2025-09-17', collector: 2, sku: '11764-00006-000', quantity: 6 },
-                { timestamp: '2025-09-17 14:19:19', date: '2025-09-17', collector: 2, sku: '11764-00006-000', quantity: 3 }, { timestamp: '2025-09-17 14:22:11', date: '2025-09-17', collector: 2, sku: '10943-00006-000', quantity: 4 },
-                { timestamp: '2025-09-17 15:29:39', date: '2025-09-17', collector: 2, sku: '11443-00001-000', quantity: 20 }, { timestamp: '2025-09-17 15:30:31', date: '2025-09-17', collector: 2, sku: '11442-00033-000', quantity: 15 },
-                { timestamp: '2025-09-17 15:31:09', date: '2025-09-17', collector: 2, sku: '11443-00002-000', quantity: 12 }, { timestamp: '2025-09-17 15:34:13', date: '2025-09-17', collector: 2, sku: '10509-58004-000', quantity: 100 },
-                { timestamp: '2025-09-17 15:55:20', date: '2025-09-17', collector: 2, sku: '10519-71009-000', quantity: 100 }, { timestamp: '2025-09-17 16:37:38', date: '2025-09-17', collector: 2, sku: '11442-00034-000', quantity: 14 },
-                { timestamp: '2025-09-18 09:34:55', date: '2025-09-18', collector: 3, sku: '12742-00116-000', quantity: 5 }, { timestamp: '2025-09-18 10:19:00', date: '2025-09-18', collector: 3, sku: '11001-00880-000', quantity: 10 },
-                { timestamp: '2025-09-18 10:19:30', date: '2025-09-18', collector: 3, sku: '12506-01137-000', quantity: 10 }, { timestamp: '2025-09-18 10:19:42', date: '2025-09-18', collector: 3, sku: '11001-00471-000', quantity: 1 },
-                { timestamp: '2025-09-18 10:20:44', date: '2025-09-18', collector: 3, sku: '10510-54022-000', quantity: 11 }, { timestamp: '2025-09-18 10:28:34', date: '2025-09-18', collector: 3, sku: '10508-54001-000', quantity: 10 },
-                { timestamp: '2025-09-18 10:34:54', date: '2025-09-18', collector: 3, sku: '10508-54001-000', quantity: 10 }, { timestamp: '2025-09-18 10:39:13', date: '2025-09-18', collector: 3, sku: '40517-58007-000', quantity: 5 },
-                { timestamp: '2025-09-18 10:42:42', date: '2025-09-18', collector: 3, sku: '40517-58007-000', quantity: 4 }, { timestamp: '2025-09-18 10:51:15', date: '2025-09-18', collector: 3, sku: '11142-00034-000', quantity: 10 },
-                { timestamp: '2025-09-18 10:56:17', date: '2025-09-18', collector: 3, sku: '11542-00001-000', quantity: 100 }, { timestamp: '2025-09-18 11:09:58', date: '2025-09-18', collector: 3, sku: '12243-00125-000', quantity: 100 },
-                { timestamp: '2025-09-18 11:18:53', date: '2025-09-18', collector: 3, sku: '12742-00116-000', quantity: 5 }, { timestamp: '2025-09-18 11:30:20', date: '2025-09-18', collector: 3, sku: '1224200071000', quantity: 5 },
-                { timestamp: '2025-09-18 11:30:32', date: '2025-09-18', collector: 3, sku: '40517-58007-000', quantity: 5 }, { timestamp: '2025-09-18 11:33:40', date: '2025-09-18', collector: 3, sku: '40517-58007-000', quantity: 5 },
-                { timestamp: '2025-09-18 11:40:28', date: '2025-09-18', collector: 3, sku: '12243-00125-000', quantity: 100 }, { timestamp: '2025-09-18 13:10:48', date: '2025-09-18', collector: 3, sku: '40505-58004-000', quantity: 4 },
-                { timestamp: '2025-09-18 13:34:42', date: '2025-09-18', collector: 3, sku: '12243-00125-000', quantity: 100 }, { timestamp: '2025-09-18 16:22:06', date: '2025-09-18', collector: 3, sku: '11543-00007-000', quantity: 50 },
-                { timestamp: '2025-09-18 17:07:45', date: '2025-09-18', collector: 3, sku: '11543-00007-000', quantity: 100 }, { timestamp: '2025-09-18 17:35:21', date: '2025-09-18', collector: 3, sku: '41343-00001-000', quantity: 300 },
-                { timestamp: '2025-09-18 17:38:21', date: '2025-09-18', collector: 3, sku: '12264-00174-000', quantity: 144 }, { timestamp: '2025-09-18 17:42:17', date: '2025-09-18', collector: 3, sku: '41343-00001-000', quantity: 300 },
-                { timestamp: '2025-09-19 08:49:22', date: '2025-09-19', collector: 3, sku: '12264-00174-000', quantity: 144 }, { timestamp: '2025-09-19 09:26:09', date: '2025-09-19', collector: 3, sku: '11543-00007-000', quantity: 100 },
-                { timestamp: '2025-09-19 10:26:35', date: '2025-09-19', collector: 3, sku: '11901-00408-051', quantity: 36 }, { timestamp: '2025-09-19 10:51:48', date: '2025-09-19', collector: 3, sku: '40517-58007-000', quantity: 4 },
-                { timestamp: '2025-09-19 10:55:07', date: '2025-09-19', collector: 3, sku: '10504-54012-000', quantity: 8 }, { timestamp: '2025-09-19 10:55:23', date: '2025-09-19', collector: 3, sku: '10504-54012-000', quantity: 8 },
-                { timestamp: '2025-09-19 14:25:50', date: '2025-09-19', collector: 3, sku: '12264-00106-000', quantity: 10 }, { timestamp: '2025-09-19 14:37:26', date: '2025-09-19', collector: 3, sku: '1174200022000', quantity: 42 },
-                { timestamp: '2025-09-19 14:37:59', date: '2025-09-19', collector: 3, sku: '10507-71003-000', quantity: 30 }, { timestamp: '2025-09-19 14:50:11', date: '2025-09-19', collector: 3, sku: '11842-00216-000', quantity: 50 },
-                { timestamp: '2025-09-19 15:18:55', date: '2025-09-19', collector: 3, sku: '1020443-011000', quantity: 10 }, { timestamp: '2025-09-19 15:19:30', date: '2025-09-19', collector: 3, sku: '1224200128000', quantity: 5 },
-                { timestamp: '2025-09-19 15:19:51', date: '2025-09-19', collector: 3, sku: '11842-00002-000', quantity: 5 }, { timestamp: '2025-09-19 15:20:25', date: '2025-09-19', collector: 3, sku: '12465-00025-000', quantity: 30 },
-                { timestamp: '2025-09-19 15:20:48', date: '2025-09-19', collector: 3, sku: '12742-00155-000', quantity: 3 }, { timestamp: '2025-09-19 16:08:22', date: '2025-09-19', collector: 3, sku: '12264-00174-000', quantity: 56 },
-                { timestamp: '2025-09-19 16:11:27', date: '2025-09-19', collector: 3, sku: '12601-00322-000', quantity: 10 }, { timestamp: '2025-09-19 16:12:08', date: '2025-09-19', collector: 3, sku: '12511-00375-000', quantity: 10 },
-                { timestamp: '2025-09-19 16:12:59', date: '2025-09-19', collector: 3, sku: '12511-00262-000', quantity: 1 }, { timestamp: '2025-09-19 16:14:50', date: '2025-09-19', collector: 3, sku: '12511-00262-000', quantity: 5 },
-                { timestamp: '2025-09-19 16:15:05', date: '2025-09-19', collector: 3, sku: '12513-00050-000', quantity: 10 }, { timestamp: '2025-09-19 16:18:02', date: '2025-09-19', collector: 3, sku: '10964-00047-000', quantity: 5 },
-                { timestamp: '2025-09-19 16:18:51', date: '2025-09-19', collector: 3, sku: '11242000180009', quantity: 11 }, { timestamp: '2025-09-19 16:20:46', date: '2025-09-19', collector: 3, sku: '12742-00037-000', quantity: 5 },
-                { timestamp: '2025-09-19 16:20:59', date: '2025-09-19', collector: 3, sku: '12768-00316-000', quantity: 30 }, { timestamp: '2025-09-19 16:21:50', date: '2025-09-19', collector: 3, sku: '12511-00105-000', quantity: 10 },
-                { timestamp: '2025-09-19 16:23:39', date: '2025-09-19', collector: 3, sku: '40343-00020-041', quantity: 1 }, { timestamp: '2025-09-19 16:26:44', date: '2025-09-19', collector: 3, sku: '12742-00358-000', quantity: 5 },
-                { timestamp: '2025-09-19 16:26:57', date: '2025-09-19', collector: 3, sku: '12743-00006-000', quantity: 10 }, { timestamp: '2025-09-19 16:27:18', date: '2025-09-19', collector: 3, sku: '12743-00005-000', quantity: 10 },
-                { timestamp: '2025-09-19 16:29:44', date: '2025-09-19', collector: 3, sku: '11342-00056-051', quantity: 5 }, { timestamp: '2025-09-19 16:37:31', date: '2025-09-19', collector: 3, sku: '12242-00006-000', quantity: 27 },
-                { timestamp: '2025-09-19 16:42:14', date: '2025-09-19', collector: 3, sku: '1174300001000', quantity: 10 }, { timestamp: '2025-09-19 16:43:23', date: '2025-09-19', collector: 3, sku: '11642-00035-000', quantity: 1 },
-                { timestamp: '2025-09-19 16:45:23', date: '2025-09-19', collector: 3, sku: '11842-00210-000', quantity: 10 }, { timestamp: '2025-09-19 16:49:32', date: '2025-09-19', collector: 3, sku: '12743-00023-000', quantity: 1 },
-                { timestamp: '2025-09-19 16:51:47', date: '2025-09-19', collector: 3, sku: '11642-00035-000', quantity: 1 }, { timestamp: '2025-09-19 16:52:25', date: '2025-09-19', collector: 3, sku: '10516-58007-000', quantity: 4 },
-                { timestamp: '2025-09-19 16:53:30', date: '2025-09-19', collector: 3, sku: '10516-58004-000', quantity: 3 }, { timestamp: '2025-09-19 16:54:37', date: '2025-09-19', collector: 3, sku: '10514-61008-000', quantity: 2 },
-                { timestamp: '2025-09-19 16:57:12', date: '2025-09-19', collector: 3, sku: '1051658-008000', quantity: 2 }, { timestamp: '2025-09-19 16:59:33', date: '2025-09-19', collector: 3, sku: '1051454008000', quantity: 1 },
-                { timestamp: '2025-09-19 17:02:54', date: '2025-09-19', collector: 3, sku: '2012511-12001-09', quantity: 320 }
-            ];
+        // ❗️ IMPORTANTE: Substitua a linha abaixo pela URL da sua implantação do App da Web do Google Apps Script
+        const SCRIPT_URL = "URL_DO_SEU_APP_DA_WEB_AQUI";
 
-            let skuChartInstance, collectorChartInstance, trendChartInstance, hourlyChartInstance;
-            let currentSkuSort = 'quantity';
-            let activeDateFilter = 'all';
+        let rawData = [];
+        let skuChartInstance, collectorChartInstance, trendChartInstance, hourlyChartInstance;
+        let currentSkuSort = 'quantity';
+        let activeDateFilter = 'all';
 
-            function setupDateFilters() {
-                const dates = [...new Set(rawData.map(item => item.date))].sort();
-                const container = document.getElementById('date-filters-container');
-                container.innerHTML = '<button class="filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>';
-                dates.forEach(date => {
-                    const btn = document.createElement('button');
-                    const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-                    btn.textContent = `Dia ${formattedDate}`;
-                    btn.dataset.date = date;
-                    btn.className = 'filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
-                    container.appendChild(btn);
-                });
+        // Função principal para buscar dados da planilha
+        async function fetchData() {
+            if (SCRIPT_URL === "URL_DO_SEU_APP_DA_WEB_AQUI" || !SCRIPT_URL) {
+                document.getElementById('loading-overlay').innerHTML = `<p class="text-red-400 text-center max-w-md">ERRO: A URL do script não foi configurada.<br><br>Por favor, edite este ficheiro HTML, encontre a variável SCRIPT_URL e substitua o texto de exemplo pela URL da implantação do seu App da Web.</p>`;
+                return;
             }
 
-            function updateDashboard(filterDate = 'all') {
-                activeDateFilter = filterDate;
-                
-                document.querySelectorAll('.filter-btn').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.date === filterDate);
-                });
-
-                let filteredData = rawData;
-                const subtitle = document.getElementById('dashboard-subtitle');
-                if (filterDate !== 'all') {
-                    filteredData = rawData.filter(item => item.date === filterDate);
-                    const formattedDate = new Date(filterDate + 'T00:00:00').toLocaleDateString('pt-BR', { dateStyle: 'long' });
-                    subtitle.textContent = `Análise do dia ${formattedDate}`;
-                } else {
-                    subtitle.textContent = 'Análise do Período Completo';
+            try {
+                const response = await fetch(SCRIPT_URL);
+                if (!response.ok) {
+                    throw new Error(`Erro na rede: ${response.statusText}`);
                 }
+                const data = await response.json();
                 
-                const totalItems = filteredData.reduce((sum, item) => sum + item.quantity, 0);
-                document.getElementById('total-items').textContent = totalItems.toLocaleString('pt-BR');
-                
-                const totalEntries = filteredData.length;
-                document.getElementById('total-entries').textContent = totalEntries.toLocaleString('pt-BR');
+                rawData = data.map(item => ({
+                    ...item,
+                    timestamp: new Date(item.timestamp),
+                    date: new Date(item.date).toISOString().split('T')[0] 
+                }));
 
-                const skuSummary = filteredData.reduce((acc, item) => {
-                    acc[item.sku] = (acc[item.sku] || 0) + item.quantity;
-                    return acc;
-                }, {});
-                
-                const uniqueSkus = Object.keys(skuSummary).length;
-                document.getElementById('unique-skus').textContent = uniqueSkus;
-
-                const collectorSummary = filteredData.reduce((acc, item) => {
-                    acc[item.collector] = (acc[item.collector] || 0) + 1;
-                    return acc;
-                }, {});
-
-                renderSkuChart(skuSummary, currentSkuSort);
-                renderCollectorCards(collectorSummary);
-                renderHourlyChart(filteredData);
+                initializeApp();
+            } catch (error) {
+                console.error("Falha ao buscar dados:", error);
+                document.getElementById('loading-overlay').innerHTML = `<p class="text-red-400">Erro ao carregar dados. Verifique a URL do script e as permissões da planilha (deve ser 'Qualquer pessoa').</p>`;
             }
-            
-            function renderTrendChart() {
-                 const trendData = rawData.reduce((acc, item) => {
-                    acc[item.date] = (acc[item.date] || 0) + item.quantity;
-                    return acc;
-                }, {});
+        }
+        
+        // Função para inicializar o dashboard após os dados serem carregados
+        function initializeApp() {
+            document.getElementById('loading-overlay').style.display = 'none';
+            document.getElementById('dashboard-content').classList.remove('hidden');
 
-                const sortedDates = Object.keys(trendData).sort();
-                const labels = sortedDates.map(date => new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
-                const data = sortedDates.map(date => trendData[date]);
-
-                const ctx = document.getElementById('trendChart').getContext('2d');
-                if (trendChartInstance) trendChartInstance.destroy();
-                
-                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
-                gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
-
-                trendChartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Quantidade Diária de Itens',
-                            data: data,
-                            fill: true,
-                            backgroundColor: gradient,
-                            borderColor: 'rgba(96, 165, 250, 1)',
-                            pointBackgroundColor: 'rgba(96, 165, 250, 1)',
-                            pointBorderColor: '#fff',
-                            pointHoverBackgroundColor: '#fff',
-                            pointHoverBorderColor: 'rgba(96, 165, 250, 1)',
-                            tension: 0.3
-                        }]
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        responsive: true,
-                        scales: { 
-                            y: { 
-                                beginAtZero: true,
-                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                                ticks: { color: '#d1d5db' }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: { color: '#d1d5db' }
-                            }
-                        },
-                        plugins: { legend: { display: false } }
-                    }
-                });
-            }
-
-            function renderHourlyChart(data) {
-                const hourlyData = data.reduce((acc, item) => {
-                    const hour = new Date(item.timestamp).getHours();
-                    acc[hour] = (acc[hour] || 0) + 1;
-                    return acc;
-                }, {});
-
-                const labels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}h`);
-                const chartData = labels.map((_, index) => hourlyData[index] || 0);
-
-                const ctx = document.getElementById('hourlyChart').getContext('2d');
-                if (hourlyChartInstance) hourlyChartInstance.destroy();
-
-                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, 'rgba(34, 197, 94, 0.8)');
-                gradient.addColorStop(1, 'rgba(34, 197, 94, 0.2)');
-
-                hourlyChartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Nº de Registros por Hora',
-                            data: chartData,
-                            backgroundColor: gradient,
-                            borderColor: 'rgba(34, 197, 94, 1)',
-                            borderWidth: 1,
-                            borderRadius: 4
-                        }]
-                    },
-                     options: {
-                        maintainAspectRatio: false,
-                        responsive: true,
-                        scales: {
-                            y: { 
-                                beginAtZero: true, 
-                                title: { display: true, text: 'Nº de Registros', color: '#d1d5db' },
-                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                                ticks: { color: '#d1d5db' }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: { color: '#d1d5db' }
-                            }
-                        },
-                        plugins: { legend: { display: false } }
-                    }
-                });
-            }
-
-            function renderSkuChart(summary, sort = 'quantity') {
-                if (skuChartInstance) skuChartInstance.destroy();
-
-                const sortedData = Object.entries(summary);
-                if (sort === 'quantity') {
-                    sortedData.sort(([, a], [, b]) => b - a);
-                } else {
-                    sortedData.sort(([a], [b]) => a.localeCompare(b));
-                }
-
-                const top10Data = sortedData.slice(0, 10);
-                const labels = top10Data.map(item => item[0]);
-                const data = top10Data.map(item => item[1]);
-
-                const ctx = document.getElementById('skuChart').getContext('2d');
-                
-                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, 'rgba(168, 85, 247, 0.8)');
-                gradient.addColorStop(1, 'rgba(168, 85, 247, 0.2)');
-
-                skuChartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Quantidade em Retrabalho',
-                            data: data,
-                            backgroundColor: gradient,
-                            borderColor: 'rgba(168, 85, 247, 1)',
-                            borderWidth: 1,
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        responsive: true,
-                        indexAxis: 'y',
-                        scales: {
-                            y: { 
-                                ticks: { 
-                                    color: '#d1d5db',
-                                    callback: function(val) { const label = this.getLabelForValue(val); return label.length > 20 ? label.substr(0, 20) + '...' : label; }
-                                },
-                                grid: { display: false }
-                            },
-                            x: { 
-                                beginAtZero: true, 
-                                title: { display: true, text: 'Quantidade de Peças', color: '#d1d5db' },
-                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                                ticks: { color: '#d1d5db' }
-                            }
-                        },
-                        plugins: { legend: { display: false }, tooltip: { callbacks: { title: (items) => items[0].label } } }
-                    }
-                });
-            }
-
-            function renderCollectorCards(summary) {
-                const container = document.getElementById('collector-container');
-                container.innerHTML = '';
-                
-                const totalEntries = Object.values(summary).reduce((sum, count) => sum + count, 0);
-                if (totalEntries === 0) {
-                    container.innerHTML = `<p class="text-gray-400 text-center">Nenhum registro para este período.</p>`;
-                    return;
-                }
-
-                const sortedCollectors = Object.entries(summary).sort(([, a], [, b]) => b - a);
-
-                sortedCollectors.forEach(([collectorId, count]) => {
-                    const percentage = totalEntries > 0 ? (count / totalEntries) * 100 : 0;
-                    const cardHTML = `
-                        <div class="flex items-center p-4 bg-gray-900 rounded-lg">
-                            <div class="p-3 rounded-full bg-red-500/20 text-red-400 mr-4">
-                               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-                            </div>
-                            <div class="flex-grow">
-                                <div class="flex justify-between items-center mb-1">
-                                    <p class="font-semibold text-white">Coletor ${collectorId}</p>
-                                    <p class="text-sm font-medium text-gray-300">${count} Registros</p>
-                                </div>
-                                <div class="w-full bg-gray-700 rounded-full h-2.5">
-                                    <div class="bg-red-400 h-2.5 rounded-full" style="width: ${percentage}%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    container.innerHTML += cardHTML;
-                });
-            }
+            setupDateFilters();
+            updateDashboard('all');
+            renderTrendChart();
             
             document.getElementById('sort-sku-chart').addEventListener('click', () => {
                 let dataToSummarize = rawData;
@@ -465,12 +214,259 @@
                     updateDashboard(date);
                 }
             });
+        }
 
-            setupDateFilters();
-            updateDashboard('all');
-            renderTrendChart();
-        });
+        function setupDateFilters() {
+            const dates = [...new Set(rawData.map(item => item.date))].sort();
+            const container = document.getElementById('date-filters-container');
+            container.innerHTML = '<button class="filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>';
+            dates.forEach(date => {
+                const btn = document.createElement('button');
+                const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                btn.textContent = `Dia ${formattedDate}`;
+                btn.dataset.date = date;
+                btn.className = 'filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
+                container.appendChild(btn);
+            });
+        }
+
+        function updateDashboard(filterDate = 'all') {
+            activeDateFilter = filterDate;
+            
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.date === filterDate);
+            });
+
+            let filteredData = rawData;
+            const subtitle = document.getElementById('dashboard-subtitle');
+            if (filterDate !== 'all') {
+                filteredData = rawData.filter(item => item.date === filterDate);
+                const formattedDate = new Date(filterDate + 'T00:00:00').toLocaleDateString('pt-BR', { dateStyle: 'long' });
+                subtitle.textContent = `Análise do dia ${formattedDate}`;
+            } else {
+                subtitle.textContent = 'Análise do Período Completo';
+            }
+            
+            const totalItems = filteredData.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById('total-items').textContent = totalItems.toLocaleString('pt-BR');
+            
+            const totalEntries = filteredData.length;
+            document.getElementById('total-entries').textContent = totalEntries.toLocaleString('pt-BR');
+
+            const skuSummary = filteredData.reduce((acc, item) => {
+                acc[item.sku] = (acc[item.sku] || 0) + item.quantity;
+                return acc;
+            }, {});
+            
+            const uniqueSkus = Object.keys(skuSummary).length;
+            document.getElementById('unique-skus').textContent = uniqueSkus;
+
+            const collectorSummary = filteredData.reduce((acc, item) => {
+                acc[item.collector] = (acc[item.collector] || 0) + 1;
+                return acc;
+            }, {});
+
+            renderSkuChart(skuSummary, currentSkuSort);
+            renderCollectorCards(collectorSummary);
+            renderHourlyChart(filteredData);
+        }
+        
+        function renderTrendChart() {
+             const trendData = rawData.reduce((acc, item) => {
+                acc[item.date] = (acc[item.date] || 0) + item.quantity;
+                return acc;
+            }, {});
+
+            const sortedDates = Object.keys(trendData).sort();
+            const labels = sortedDates.map(date => new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+            const data = sortedDates.map(date => trendData[date]);
+
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            if (trendChartInstance) trendChartInstance.destroy();
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+            trendChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Quantidade Diária de Itens',
+                        data: data,
+                        fill: true,
+                        backgroundColor: gradient,
+                        borderColor: 'rgba(96, 165, 250, 1)',
+                        pointBackgroundColor: 'rgba(96, 165, 250, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(96, 165, 250, 1)',
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#d1d5db' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#d1d5db' }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderHourlyChart(data) {
+            const hourlyData = data.reduce((acc, item) => {
+                const hour = item.timestamp.getHours();
+                acc[hour] = (acc[hour] || 0) + 1;
+                return acc;
+            }, {});
+
+            const labels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}h`);
+            const chartData = labels.map((_, index) => hourlyData[index] || 0);
+
+            const ctx = document.getElementById('hourlyChart').getContext('2d');
+            if (hourlyChartInstance) hourlyChartInstance.destroy();
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(34, 197, 94, 0.8)');
+            gradient.addColorStop(1, 'rgba(34, 197, 94, 0.2)');
+
+            hourlyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nº de Registos por Hora',
+                        data: chartData,
+                        backgroundColor: gradient,
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                 options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'Nº de Registos', color: '#d1d5db' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#d1d5db' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#d1d5db' }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderSkuChart(summary, sort = 'quantity') {
+            if (skuChartInstance) skuChartInstance.destroy();
+
+            const sortedData = Object.entries(summary);
+            if (sort === 'quantity') {
+                sortedData.sort(([, a], [, b]) => b - a);
+            } else {
+                sortedData.sort(([a], [b]) => a.localeCompare(b));
+            }
+
+            const top10Data = sortedData.slice(0, 10);
+            const labels = top10Data.map(item => item[0]);
+            const data = top10Data.map(item => item[1]);
+
+            const ctx = document.getElementById('skuChart').getContext('2d');
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(168, 85, 247, 0.8)');
+            gradient.addColorStop(1, 'rgba(168, 85, 247, 0.2)');
+
+            skuChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Quantidade em Retrabalho',
+                        data: data,
+                        backgroundColor: gradient,
+                        borderColor: 'rgba(168, 85, 247, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    indexAxis: 'y',
+                    scales: {
+                        y: { 
+                            ticks: { 
+                                color: '#d1d5db',
+                                callback: function(val) { const label = this.getLabelForValue(val); return label.length > 20 ? label.substr(0, 20) + '...' : label; }
+                            },
+                            grid: { display: false }
+                        },
+                        x: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'Quantidade de Peças', color: '#d1d5db' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#d1d5db' }
+                        }
+                    },
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { title: (items) => items[0].label } } }
+                }
+            });
+        }
+
+        function renderCollectorCards(summary) {
+            const container = document.getElementById('collector-container');
+            container.innerHTML = '';
+            
+            const totalEntries = Object.values(summary).reduce((sum, count) => sum + count, 0);
+            if (totalEntries === 0) {
+                container.innerHTML = `<p class="text-gray-400 text-center">Nenhum registo para este período.</p>`;
+                return;
+            }
+
+            const sortedCollectors = Object.entries(summary).sort(([, a], [, b]) => b - a);
+
+            sortedCollectors.forEach(([collectorId, count]) => {
+                const percentage = totalEntries > 0 ? (count / totalEntries) * 100 : 0;
+                const cardHTML = `
+                    <div class="flex items-center p-4 bg-gray-900 rounded-lg">
+                        <div class="p-3 rounded-full bg-red-500/20 text-red-400 mr-4">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-center mb-1">
+                                <p class="font-semibold text-white">Coletor ${collectorId}</p>
+                                <p class="text-sm font-medium text-gray-300">${count} Registos</p>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2.5">
+                                <div class="bg-red-400 h-2.5 rounded-full" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        // Inicia o processo de busca de dados ao carregar a página
+        document.addEventListener('DOMContentLoaded', fetchData);
     </script>
 </body>
 </html>
-
