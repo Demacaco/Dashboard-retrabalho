@@ -9,14 +9,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Midnight Slate -->
-    <!-- Application Structure Plan: This version introduces a critical evolution: dynamic data loading. The SPA no longer holds static data. It now fetches live data from the Google Sheet via a dedicated Apps Script function upon loading. This transforms the dashboard from a static report into a live, auto-updating BI tool. The information architecture and UI remain the same, but the data layer is now dynamic. -->
-    <!-- Visualization & Content Choices: 
-        - Data Source: Changed from a hardcoded JS array to a live `fetch` call to a Google Sheet Web App. Goal: Create a live, dynamic dashboard.
-        - Loading State: A simple loading indicator is added to inform the user that data is being fetched. Goal: Improve UX during data load.
-        - All other visualizations and interactions are preserved but now operate on the live data fetched from the spreadsheet, making the entire application dynamic.
-        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
-    -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -144,78 +136,86 @@
         </main>
         
         <footer class="text-center mt-12 text-gray-500 text-sm">
-    <p>ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025 | v1.1</p>
-    <p>Última atualização: <span id="update-timestamp">Carregando...</span></p>
-</footer>
+            <p>ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025 | v1.1</p>
+            <p>Última atualização: <span id="update-timestamp">Carregando...</span></p>
+        </footer>
     </div>
 
     <script>
         // ❗️ IMPORTANTE: Substitua a linha abaixo pela URL da sua implantação do App da Web do Google Apps Script
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw1Euk7DJtyZH6v5byzXDTY8lMcJlRMQjFIKfbn1ROxkQspn3ugvS0eou-lOZlJFDgu/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw1Euk7DJtyZH6v5byzXDTY8lMcJlRMQjFIKfbn1ROxkQspn3ugvS0eou-lOZlJFDgu/exec";
 
-let rawData = [];
-let skuChartInstance, collectorChartInstance, trendChartInstance, hourlyChartInstance;
-let currentSkuSort = 'quantity';
-let activeDateFilter = 'all';
+        let rawData = [];
+        let skuChartInstance, trendChartInstance, hourlyChartInstance;
+        let currentSkuSort = 'quantity';
+        let activeDateFilter = 'all';
 
-// Função principal para buscar dados da planilha
-async function fetchData() {
-    try {
-        const response = await fetch(SCRIPT_URL);
-        if (!response.ok) {
-            throw new Error(`Erro na rede: ${response.statusText}`);
+        // Função principal para buscar dados da planilha
+        async function fetchData() {
+            try {
+                const response = await fetch(SCRIPT_URL);
+                if (!response.ok) {
+                    throw new Error(`Erro na rede: ${response.statusText}`);
+                }
+                const data = await response.json();
+                
+                rawData = data.map(item => ({
+                    ...item,
+                    timestamp: new Date(item.timestamp),
+                    date: new Date(item.date).toISOString().split('T')[0] 
+                }));
+
+                initializeApp();
+                
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                document.getElementById('loading-overlay').innerHTML = `
+                    <div class="text-center">
+                        <p class="text-red-400 mb-4">Erro ao carregar dados: ${error.message}</p>
+                        <button onclick="fetchData()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            Tentar Novamente
+                        </button>
+                    </div>
+                `;
+            }
         }
-        const data = await response.json();
-        
-        rawData = data.map(item => ({
-            ...item,
-            timestamp: new Date(item.timestamp),
-            date: new Date(item.date).toISOString().split('T')[0] 
-        }));
 
         // Função para inicializar o dashboard após os dados serem carregados
-function initializeApp() {
-    document.getElementById('loading-overlay').style.display = 'none';
-    document.getElementById('dashboard-content').classList.remove('hidden');
+        function initializeApp() {
+            document.getElementById('loading-overlay').style.display = 'none';
+            document.getElementById('dashboard-content').classList.remove('hidden');
 
-    setupDateFilters();
-    updateDashboard('all');
-    renderTrendChart();
+            setupDateFilters();
+            updateDashboard('all');
+            renderTrendChart();
 
-    // Adiciona a data e hora da atualização no rodapé
-    document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
+            // Adiciona a data e hora da atualização no rodapé
+            document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
 
-    // Configura o que acontece ao clicar no botão de ordenar
-    document.getElementById('sort-sku-chart').addEventListener('click', () => {
-        let dataToSummarize = rawData;
-        if(activeDateFilter !== 'all') {
-            dataToSummarize = rawData.filter(item => item.date === activeDateFilter);
-        }
-        const skuSummary = dataToSummarize.reduce((acc, item) => {
-            acc[item.sku] = (acc[item.sku] || 0) + item.quantity;
-            return acc;
-        }, {});
+            // Configura o que acontece ao clicar no botão de ordenar
+            document.getElementById('sort-sku-chart').addEventListener('click', () => {
+                let dataToSummarize = rawData;
+                if(activeDateFilter !== 'all') {
+                    dataToSummarize = rawData.filter(item => item.date === activeDateFilter);
+                }
+                const skuSummary = dataToSummarize.reduce((acc, item) => {
+                    acc[item.sku] = (acc[item.sku] || 0) + item.quantity;
+                    return acc;
+                }, {});
 
-        currentSkuSort = currentSkuSort === 'quantity' ? 'alphabetical' : 'quantity';
-        document.getElementById('sort-sku-chart').textContent = currentSkuSort === 'quantity' ? 'Ordenar por SKU' : 'Ordenar por Qtd.';
-        renderSkuChart(skuSummary, currentSkuSort);
-    });
-    
-    // Configura o que acontece ao clicar nos filtros de data
-    document.getElementById('date-filters-container').addEventListener('click', (e) => {
-        if (e.target.classList.contains('filter-btn')) {
-            const date = e.target.dataset.date;
-            updateDashboard(date);
-        }
-    });
-}
+                currentSkuSort = currentSkuSort === 'quantity' ? 'alphabetical' : 'quantity';
+                document.getElementById('sort-sku-chart').textContent = currentSkuSort === 'quantity' ? 'Ordenar por SKU' : 'Ordenar por Qtd.';
+                renderSkuChart(skuSummary, currentSkuSort);
+            });
             
+            // Configura o que acontece ao clicar nos filtros de data
             document.getElementById('date-filters-container').addEventListener('click', (e) => {
                 if (e.target.classList.contains('filter-btn')) {
                     const date = e.target.dataset.date;
                     updateDashboard(date);
                 }
             });
+        }
 
         function setupDateFilters() {
             const dates = [...new Set(rawData.map(item => item.date))].sort();
@@ -273,7 +273,7 @@ function initializeApp() {
         }
         
         function renderTrendChart() {
-             const trendData = rawData.reduce((acc, item) => {
+            const trendData = rawData.reduce((acc, item) => {
                 acc[item.date] = (acc[item.date] || 0) + item.quantity;
                 return acc;
             }, {});
@@ -355,7 +355,7 @@ function initializeApp() {
                         borderRadius: 4
                     }]
                 },
-                 options: {
+                options: {
                     maintainAspectRatio: false,
                     responsive: true,
                     scales: {
@@ -465,8 +465,9 @@ function initializeApp() {
                 container.innerHTML += cardHTML;
             });
         }
+
         // Inicia o processo de busca de dados ao carregar a página
         document.addEventListener('DOMContentLoaded', fetchData);
     </script>
-    </body>
+</body>
 </html>
