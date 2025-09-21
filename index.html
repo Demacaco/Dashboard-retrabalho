@@ -169,7 +169,7 @@
             try {
                 showLoading();
                 
-                const response = await fetch(SCRIPT_URL);
+                const response = await fetch(SCRIPT_URL + "?v=" + new Date().getTime());
                 if (!response.ok) {
                     throw new Error(`Erro na rede: ${response.status}`);
                 }
