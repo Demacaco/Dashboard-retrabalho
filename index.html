@@ -3,16 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análise de Retrabalhos - Gestão de Estoque</title>
+    <title>Dashboard de Retrabalhos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827;
+            background-color: #111827; /* Azul escuro/preto */
         }
         .chart-container {
             position: relative;
@@ -24,626 +22,145 @@
             max-height: 50vh;
         }
         .filter-btn.active {
-            background-color: #3b82f6;
+            background-color: #3b82f6; /* Azul */
             color: white;
         }
         #loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(17, 24, 39, 0.9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            color: white;
-            font-size: 1.2rem;
-            padding: 1rem;
-            text-align: center;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(17, 24, 39, 0.95);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999; color: white; font-size: 1.2rem;
         }
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        .card-hover:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-        }
-        .progress-bar {
-            transition: width 1s ease-in-out;
+        #error-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(17, 24, 39, 0.95);
+            display: none; /* Começa escondido */
+            flex-direction: column; justify-content: center; align-items: center;
+            z-index: 10000; color: white; font-size: 1.2rem; text-align: center; padding: 1rem;
         }
     </style>
 </head>
 <body class="text-gray-300">
 
     <div id="loading-overlay">
-        <div class="text-center">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <p>A carregar dados ao vivo da planilha...</p>
+        <div class="flex flex-col items-center">
+            <svg class="animate-spin h-8 w-8 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p>A carregar dados ao vivo...</p>
+        </div>
+    </div>
+
+    <div id="error-overlay">
+        <div class="flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p id="error-message" class="mb-6 max-w-lg"></p>
+            <button onclick="location.reload();" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Tentar Novamente</button>
         </div>
     </div>
 
     <div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
-        
         <header class="text-center mb-12">
-            <h1 class="text-3xl md:text-4xl font-bold text-white">Análise de Retrabalhos</h1>
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Dashboard de Retrabalhos</h1>
             <p id="dashboard-subtitle" class="text-lg text-gray-400 mt-2">Análise do Período Completo</p>
         </header>
-
         <main>
-            <section id="filters" class="mb-8 bg-gray-800 rounded-xl p-6 shadow-lg">
-                <h2 class="text-lg font-semibold text-white mb-3 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-blue-400"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
-                    Filtrar por Período
-                </h2>
-                <div id="date-filters-container" class="flex flex-wrap gap-2">
-                    <button class="filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>
-                </div>
-            </section>
-
-            <section id="kpis" class="mb-12">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg card-hover">
-                        <h3 class="text-lg font-semibold text-gray-400">Quantidade Total de Itens</h3>
-                        <p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p>
-                    </div>
-                    <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg card-hover">
-                        <h3 class="text-lg font-semibold text-gray-400">Total de Registos</h3>
-                        <p id="total-entries" class="text-4xl font-bold text-blue-400 mt-2">0</p>
-                    </div>
-                    <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg card-hover">
-                        <h3 class="text-lg font-semibold text-gray-400">SKUs Únicos</h3>
-                        <p id="unique-skus" class="text-4xl font-bold text-blue-400 mt-2">0</p>
-                    </div>
-                </div>
-            </section>
-            
-            <section class="bg-gray-800 rounded-xl p-6 shadow-lg mb-12">
-                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-green-400"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-                    Tendência de Retrabalhos por Dia
-                </h2>
-                <p class="text-gray-400 mb-4">Volume total de itens em retrabalho a cada dia, para identificar picos de atividade.</p>
-                <div class="chart-container" style="max-height: 350px;">
-                    <canvas id="trendChart"></canvas>
-                </div>
-            </section>
-            
-            <section class="bg-gray-800 rounded-xl p-6 shadow-lg mb-12">
-                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-yellow-400"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    Análise de Retrabalhos por Hora do Dia
-                </h2>
-                <p class="text-gray-400 mb-4">Horários de pico em que os retrabalhos são registados, ajudando a identificar padrões de produtividade.</p>
-                <div class="chart-container">
-                    <canvas id="hourlyChart"></canvas>
-                </div>
-            </section>
-
-            <section id="charts" class="mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-                         <h2 class="text-xl font-bold text-white flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-purple-400"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                            Top 10 Itens por Quantidade
-                        </h2>
-                         <button id="sort-sku-chart" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 w-full sm:w-auto">Ordenar por Qtd.</button>
-                    </div>
-                    <p class="text-gray-400 mb-4">Os itens com maior volume de peças em retrabalho no período selecionado.</p>
-                    <div class="chart-container">
-                        <canvas id="skuChart"></canvas>
-                    </div>
-                </div>
-                <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
-                    <h2 class="text-xl font-bold text-white mb-4 flex items-center">
-                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-red-400"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                        Atividade por Coletor
-                    </h2>
-                    <p class="text-gray-400 mb-4">Registos feitos por cada operador no período selecionado.</p>
-                    <div id="collector-container" class="space-y-4 mt-6">
-                    </div>
-                </div>
-            </section>
-            
-        </main>
-        
-        <footer class="text-center mt-12 text-gray-500 text-sm">
-            <p>ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025 | v1.2</p>
-            <p>Última atualização: <span id="update-timestamp">Carregando...</span></p>
-        </footer>
+            </main>
     </div>
 
-    <script>
-        // URL do Google Apps Script Web App
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwjy5v5GNNnt6NB_T29Sa6n4nJhPTm6G2eGaiSuXYHLx-6i34n1tpbhN8Uzv_rJx9jZ/exec";
+<script>
+    // =================================================================
+    // CONFIGURAÇÃO
+    // =================================================================
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwjy5v5GNNnt6NB_T29Sa6n4nJhPTm6G2eGaiSuXYHLx-6i34n1tpbhN8Uzv_rJx9jZ/exec";
 
-        // Dados e estado da aplicação
-        let rawData = [];
-        let skuChartInstance, trendChartInstance, hourlyChartInstance;
-        let currentSkuSort = 'quantity';
-        let activeDateFilter = 'all';
+    // =================================================================
+    // ESTADO DA APLICAÇÃO
+    // =================================================================
+    let rawData = [];
+    let skuChartInstance, collectorChartInstance, trendChartInstance, hourlyChartInstance;
+    let currentSkuSort = 'quantity';
+    let activeDateFilter = 'all';
 
-        // Função principal para buscar dados da planilha
-        async function fetchData() {
-            try {
-                showLoading();
-                
-                const response = await fetch(SCRIPT_URL + "?v=" + new Date().getTime());
-                if (!response.ok) {
-                    throw new Error(`Erro na rede: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                // ... (código anterior)
-
-     // ===== NOVO BLOCO DE VERIFICAÇÃO DE ERRO =====
-     if (data.error) {
-       // Se a API retornou um objeto de erro, nós paramos tudo e mostramos essa mensagem.
-       throw new Error(`Erro vindo do servidor: ${data.error}`);
-     }
-     // ===========================================
-
-     // Processar os dados recebidos
-     rawData = data.map(item => ({
-       ...item,
-// ... (resto do código)
-                // Processar os dados recebidos
-                rawData = data.map(item => ({
-                    ...item,
-                    timestamp: new Date(item.timestamp),
-                    date: new Date(item.date).toISOString().split('T')[0]
-              try {
-    showLoading();
-
-    const response = await fetch(SCRIPT_URL + "?v=" + new Date().getTime());
-    if (!response.ok) {
-        throw new Error(`Erro na rede: ${response.status}`);
+    // =================================================================
+    // FUNÇÕES DE UI (INTERFACE DO USUÁRIO)
+    // =================================================================
+    function showLoading() {
+        document.getElementById('loading-overlay').style.display = 'flex';
+        document.getElementById('error-overlay').style.display = 'none';
+        document.getElementById('dashboard-content').classList.add('hidden');
     }
 
-    const data = await response.json();
-
-    // NOVO BLOCO DE VERIFICAÇÃO DE ERRO
-    if (data.error) {
-      // Se a API retornou um objeto de erro, nós paramos tudo e mostramos essa mensagem.
-      throw new Error(`Erro vindo do servidor: ${data.error}`);
+    function showError(message) {
+        document.getElementById('loading-overlay').style.display = 'none';
+        document.getElementById('error-message').textContent = message;
+        document.getElementById('error-overlay').style.display = 'flex';
     }
 
-    // Processar os dados recebidos (A VERSÃO CORRETA E ÚNICA)
-    rawData = data.map(item => ({
-        ...item,
-        timestamp: new Date(item.timestamp),
-        date: new Date(item.date).toISOString().split('T')[0]
-    }));
+    function showDashboard() {
+        document.getElementById('loading-overlay').style.display = 'none';
+        document.getElementById('error-overlay').style.display = 'none';
+        document.getElementById('dashboard-content').classList.remove('hidden');
+    }
 
-    // Inicializar a aplicação com os dados
-    initializeApp();
+    // =================================================================
+    // FUNÇÃO PRINCIPAL DE BUSCA DE DADOS
+    // =================================================================
+    async function fetchData() {
+        try {
+            showLoading();
+
+            if (!SCRIPT_URL || SCRIPT_URL === "COLE_SUA_URL_DO_APPS_SCRIPT_AQUI") {
+                throw new Error("A URL do Google Apps Script não foi configurada.");
+            }
+
+            const response = await fetch(SCRIPT_URL + "?v=" + new Date().getTime());
+            if (!response.ok) {
+                throw new Error(`Erro na rede: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(`Erro vindo do servidor: ${data.error}`);
+            }
+
+            rawData = data.map(item => ({
+                ...item,
+                timestamp: new Date(item.timestamp),
+                date: new Date(item.date).toISOString().split('T')[0]
+            }));
+
+            initializeApp();
+
+        } catch (error) {
+            console.error('Erro ao carregar dados:', error);
+            showError(`Erro ao carregar dados: ${error.message}`);
+        }
+    }
+
+    // =================================================================
+    // FUNÇÃO DE INICIALIZAÇÃO E RENDERIZAÇÃO
+    // =================================================================
+    function initializeApp() {
+        // Esta função será chamada após os dados serem carregados com sucesso.
+        // Aqui entrará todo o código que cria os filtros, os KPIs e os gráficos.
+        // Por enquanto, vamos apenas mostrar o dashboard.
+        
+        // Exemplo: document.getElementById('main-content').innerHTML = '<h1>Dados Carregados!</h1>';
+        
+        showDashboard();
+        // setupDateFilters();
+        // updateDashboard('all');
+    }
     
-} catch (error) {
-    console.error('Erro ao carregar dados:', error);
-    showError(`Erro ao carregar dados: ${error.message}`);
-}
-
-               
-            }
-        }
-
-        // Mostrar estado de carregamento
-        function showLoading() {
-            document.getElementById('loading-overlay').style.display = 'flex';
-            document.getElementById('dashboard-content').classList.add('hidden');
-        }
-
-        // Mostrar mensagem de erro
-        function showError(message) {
-            document.getElementById('loading-overlay').innerHTML = `
-                <div class="text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-4">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    <p class="text-red-400 mb-4">${message}</p>
-                    <button onclick="fetchData()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                        Tentar Novamente
-                    </button>
-                </div>
-            `;
-        }
-
-        // Inicializar a aplicação após carregar os dados
-        function initializeApp() {
-            document.getElementById('loading-overlay').style.display = 'none';
-            document.getElementById('dashboard-content').classList.remove('hidden');
-
-            // Configurar filtros de data
-            setupDateFilters();
-            
-            // Atualizar o dashboard com todos os dados
-            updateDashboard('all');
-            
-            // Renderizar gráfico de tendência
-            renderTrendChart();
-
-            // Atualizar timestamp
-            document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
-
-            // Configurar eventos
-            setupEventListeners();
-        }
-
-        // Configurar event listeners
-        function setupEventListeners() {
-            // Botão de ordenação do gráfico SKU
-            document.getElementById('sort-sku-chart').addEventListener('click', toggleSkuSort);
-            
-            // Filtros de data
-            document.getElementById('date-filters-container').addEventListener('click', (e) => {
-                if (e.target.classList.contains('filter-btn')) {
-                    const date = e.target.dataset.date;
-                    updateDashboard(date);
-                }
-            });
-        }
-
-        // Alternar entre ordenação por quantidade e alfabética
-        function toggleSkuSort() {
-            let dataToSummarize = rawData;
-            if(activeDateFilter !== 'all') {
-                dataToSummarize = rawData.filter(item => item.date === activeDateFilter);
-            }
-            
-            const skuSummary = dataToSummarize.reduce((acc, item) => {
-                acc[item.sku] = (acc[item.sku] || 0) + item.quantity;
-                return acc;
-            }, {});
-
-            currentSkuSort = currentSkuSort === 'quantity' ? 'alphabetical' : 'quantity';
-            document.getElementById('sort-sku-chart').textContent = 
-                currentSkuSort === 'quantity' ? 'Ordenar por SKU' : 'Ordenar por Qtd.';
-                
-            renderSkuChart(skuSummary, currentSkuSort);
-        }
-
-        // Configurar filtros de data
-        function setupDateFilters() {
-            const dates = [...new Set(rawData.map(item => item.date))].sort();
-            const container = document.getElementById('date-filters-container');
-            
-            // Limpar container (mantendo apenas o botão "Ver Tudo")
-            const allButton = container.querySelector('[data-date="all"]');
-            container.innerHTML = '';
-            container.appendChild(allButton);
-
-            // Adicionar botões para cada data
-            dates.forEach(date => {
-                const btn = document.createElement('button');
-                const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { 
-                    day: '2-digit', 
-                    month: '2-digit' 
-                });
-                
-                btn.textContent = `Dia ${formattedDate}`;
-                btn.dataset.date = date;
-                btn.className = 'filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
-                container.appendChild(btn);
-            });
-        }
-
-        // Atualizar o dashboard com base no filtro selecionado
-        function updateDashboard(filterDate = 'all') {
-            activeDateFilter = filterDate;
-            
-            // Atualizar estado dos botões de filtro
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.date === filterDate);
-            });
-
-            // Filtrar dados conforme seleção
-            let filteredData = rawData;
-            const subtitle = document.getElementById('dashboard-subtitle');
-            
-            if (filterDate !== 'all') {
-                filteredData = rawData.filter(item => item.date === filterDate);
-                const formattedDate = new Date(filterDate + 'T00:00:00').toLocaleDateString('pt-BR', { 
-                    dateStyle: 'long' 
-                });
-                subtitle.textContent = `Análise do dia ${formattedDate}`;
-            } else {
-                subtitle.textContent = 'Análise do Período Completo';
-            }
-            
-            // Atualizar KPIs
-            updateKPIs(filteredData);
-            
-            // Atualizar visualizações
-            updateVisualizations(filteredData);
-        }
-
-        // Atualizar os indicadores principais (KPIs)
-        function updateKPIs(data) {
-            const totalItems = data.reduce((sum, item) => sum + item.quantity, 0);
-            document.getElementById('total-items').textContent = totalItems.toLocaleString('pt-BR');
-            
-            const totalEntries = data.length;
-            document.getElementById('total-entries').textContent = totalEntries.toLocaleString('pt-BR');
-
-            const uniqueSkus = new Set(data.map(item => item.sku)).size;
-            document.getElementById('unique-skus').textContent = uniqueSkus;
-        }
-
-        // Atualizar todas as visualizações
-        function updateVisualizations(data) {
-            const skuSummary = data.reduce((acc, item) => {
-                acc[item.sku] = (acc[item.sku] || 0) + item.quantity;
-                return acc;
-            }, {});
-            
-            const collectorSummary = data.reduce((acc, item) => {
-                acc[item.collector] = (acc[item.collector] || 0) + 1;
-                return acc;
-            }, {});
-
-            renderSkuChart(skuSummary, currentSkuSort);
-            renderCollectorCards(collectorSummary);
-            renderHourlyChart(data);
-        }
-
-        // Renderizar gráfico de tendência
-        function renderTrendChart() {
-            const trendData = rawData.reduce((acc, item) => {
-                acc[item.date] = (acc[item.date] || 0) + item.quantity;
-                return acc;
-            }, {});
-
-            const sortedDates = Object.keys(trendData).sort();
-            const labels = sortedDates.map(date => 
-                new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { 
-                    day: '2-digit', 
-                    month: '2-digit' 
-                })
-            );
-            
-            const data = sortedDates.map(date => trendData[date]);
-
-            const ctx = document.getElementById('trendChart').getContext('2d');
-            if (trendChartInstance) trendChartInstance.destroy();
-            
-            // Criar gradiente para o gráfico
-            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
-            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
-
-            trendChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Quantidade Diária de Itens',
-                        data: data,
-                        fill: true,
-                        backgroundColor: gradient,
-                        borderColor: 'rgba(96, 165, 250, 1)',
-                        pointBackgroundColor: 'rgba(96, 165, 250, 1)',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgba(96, 165, 250, 1)',
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    maintainAspectRatio: false,
-                    responsive: true,
-                    scales: { 
-                        y: { 
-                            beginAtZero: true,
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                            ticks: { color: '#d1d5db' }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#d1d5db' }
-                        }
-                    },
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(31, 41, 55, 0.9)',
-                            titleColor: '#fff',
-                            bodyColor: '#d1d5db'
-                        }
-                    }
-                }
-            });
-        }
-
-        // Renderizar gráfico de distribuição por hora
-        function renderHourlyChart(data) {
-            const hourlyData = data.reduce((acc, item) => {
-                const hour = item.timestamp.getHours();
-                acc[hour] = (acc[hour] || 0) + 1;
-                return acc;
-            }, {});
-
-            const labels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}h`);
-            const chartData = labels.map((_, index) => hourlyData[index] || 0);
-
-            const ctx = document.getElementById('hourlyChart').getContext('2d');
-            if (hourlyChartInstance) hourlyChartInstance.destroy();
-
-            // Criar gradiente para o gráfico
-            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(34, 197, 94, 0.8)');
-            gradient.addColorStop(1, 'rgba(34, 197, 94, 0.2)');
-
-            hourlyChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Nº de Registos por Hora',
-                        data: chartData,
-                        backgroundColor: gradient,
-                        borderColor: 'rgba(34, 197, 94, 1)',
-                        borderWidth: 1,
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    maintainAspectRatio: false,
-                    responsive: true,
-                    scales: {
-                        y: { 
-                            beginAtZero: true, 
-                            title: { 
-                                display: true, 
-                                text: 'Nº de Registos', 
-                                color: '#d1d5db' 
-                            },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                            ticks: { color: '#d1d5db' }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#d1d5db' }
-                        }
-                    },
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(31, 41, 55, 0.9)',
-                            titleColor: '#fff',
-                            bodyColor: '#d1d5db'
-                        }
-                    }
-                }
-            });
-        }
-
-        // Renderizar gráfico de SKUs
-        function renderSkuChart(summary, sort = 'quantity') {
-            if (skuChartInstance) skuChartInstance.destroy();
-
-            // Ordenar dados conforme seleção
-            const sortedData = Object.entries(summary);
-            if (sort === 'quantity') {
-                sortedData.sort(([, a], [, b]) => b - a);
-            } else {
-                sortedData.sort(([a], [b]) => a.localeCompare(b));
-            }
-
-            // Manter apenas os 10 primeiros
-            const top10Data = sortedData.slice(0, 10);
-            const labels = top10Data.map(item => item[0]);
-            const data = top10Data.map(item => item[1]);
-
-            const ctx = document.getElementById('skuChart').getContext('2d');
-            
-            // Criar gradiente para o gráfico
-            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(168, 85, 247, 0.8)');
-            gradient.addColorStop(1, 'rgba(168, 85, 247, 0.2)');
-
-            skuChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Quantidade em Retrabalho',
-                        data: data,
-                        backgroundColor: gradient,
-                        borderColor: 'rgba(168, 85, 247, 1)',
-                        borderWidth: 1,
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    maintainAspectRatio: false,
-                    responsive: true,
-                    indexAxis: 'y',
-                    scales: {
-                        y: { 
-                            ticks: { 
-                                color: '#d1d5db',
-                                callback: function(val) { 
-                                    const label = this.getLabelForValue(val); 
-                                    return label.length > 20 ? label.substr(0, 20) + '...' : label; 
-                                }
-                            },
-                            grid: { display: false }
-                        },
-                        x: { 
-                            beginAtZero: true, 
-                            title: { 
-                                display: true, 
-                                text: 'Quantidade de Peças', 
-                                color: '#d1d5db' 
-                            },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                            ticks: { color: '#d1d5db' }
-                        }
-                    },
-                    plugins: { 
-                        legend: { display: false }, 
-                        tooltip: { 
-                            callbacks: { 
-                                title: (items) => items[0].label 
-                            },
-                            backgroundColor: 'rgba(31, 41, 55, 0.9)',
-                            titleColor: '#fff',
-                            bodyColor: '#d1d5db'
-                        } 
-                    }
-                }
-            });
-        }
-
-        // Renderizar cards de coletores
-        function renderCollectorCards(summary) {
-            const container = document.getElementById('collector-container');
-            container.innerHTML = '';
-            
-            const totalEntries = Object.values(summary).reduce((sum, count) => sum + count, 0);
-            
-            if (totalEntries === 0) {
-                container.innerHTML = `<p class="text-gray-400 text-center">Nenhum registo para este período.</p>`;
-                return;
-            }
-
-            // Ordenar coletores por quantidade de registros
-            const sortedCollectors = Object.entries(summary).sort(([, a], [, b]) => b - a);
-
-            // Criar um card para cada coletor
-            sortedCollectors.forEach(([collectorId, count]) => {
-                const percentage = totalEntries > 0 ? (count / totalEntries) * 100 : 0;
-                
-                const cardHTML = `
-                    <div class="flex items-center p-4 bg-gray-900 rounded-lg card-hover">
-                        <div class="p-3 rounded-full bg-red-500/20 text-red-400 mr-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <div class="flex-grow">
-                            <div class="flex justify-between items-center mb-1">
-                                <p class="font-semibold text-white">Coletor ${collectorId}</p>
-                                <p class="text-sm font-medium text-gray-300">${count} Registos</p>
-                            </div>
-                            <div class="w-full bg-gray-700 rounded-full h-2.5">
-                                <div class="bg-red-400 h-2.5 rounded-full progress-bar" style="width: ${percentage}%"></div>
-                            </div>
-                            <p class="text-xs text-gray-400 mt-1">${percentage.toFixed(1)}% do total</p>
-                        </div>
-                    </div>
-                `;
-                
-                container.innerHTML += cardHTML;
-            });
-        }
-
-        // Iniciar a aplicação quando o DOM estiver carregado
-        document.addEventListener('DOMContentLoaded', fetchData);
-    </script>
+    // =================================================================
+    // INICIA O PROCESSO
+    // =================================================================
+    document.addEventListener('DOMContentLoaded', fetchData);
+</script>
 </body>
 </html>
