@@ -8,55 +8,25 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #111827; /* Azul escuro/preto */
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 400px;
-            max-height: 50vh;
-        }
-        .filter-btn.active {
-            background-color: #3b82f6; /* Azul */
-            color: white;
-        }
-        #loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(17, 24, 39, 0.95);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 9999; color: white; font-size: 1.2rem;
-        }
-        #error-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(17, 24, 39, 0.95);
-            display: none; /* Começa escondido */
-            flex-direction: column; justify-content: center; align-items: center;
-            z-index: 10000; color: white; font-size: 1.2rem; text-align: center; padding: 1rem;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #111827; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin: auto; height: 400px; max-height: 50vh; }
+        .filter-btn.active { background-color: #3b82f6; color: white; }
+        #loading-overlay, #error-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(17, 24, 39, 0.95); display: flex; justify-content: center; align-items: center; z-index: 9999; color: white; text-align: center; padding: 1rem; }
+        #error-overlay { display: none; flex-direction: column; }
     </style>
 </head>
 <body class="text-gray-300">
 
     <div id="loading-overlay">
         <div class="flex flex-col items-center">
-            <svg class="animate-spin h-8 w-8 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
+            <svg class="animate-spin h-8 w-8 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <p>A carregar dados ao vivo...</p>
         </div>
     </div>
 
     <div id="error-overlay">
         <div class="flex flex-col items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             <p id="error-message" class="mb-6 max-w-lg"></p>
             <button onclick="location.reload();" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Tentar Novamente</button>
         </div>
@@ -68,30 +38,31 @@
             <p id="dashboard-subtitle" class="text-lg text-gray-400 mt-2">Análise do Período Completo</p>
         </header>
         <main>
-            </main>
+            <section id="filters" class="mb-8 bg-gray-800 rounded-xl p-6 shadow-lg">
+                <h2 class="text-lg font-semibold text-white mb-3">Filtrar por Período</h2>
+                <div id="date-filters-container" class="flex flex-wrap gap-2"></div>
+            </section>
+            <section id="kpis" class="mb-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg"><h3 class="text-lg font-semibold text-gray-400">Quantidade Total de Itens</h3><p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p></div>
+                <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg"><h3 class="text-lg font-semibold text-gray-400">Total de Registos</h3><p id="total-entries" class="text-4xl font-bold text-blue-400 mt-2">0</p></div>
+                <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg"><h3 class="text-lg font-semibold text-gray-400">SKUs Únicos</h3><p id="unique-skus" class="text-4xl font-bold text-blue-400 mt-2">0</p></div>
+            </section>
+            <section class="bg-gray-800 rounded-xl p-6 shadow-lg mb-12">
+                <h2 class="text-xl font-bold text-white mb-4">Tendência de Retrabalhos por Dia</h2>
+                <div class="chart-container" style="max-height: 350px;"><canvas id="trendChart"></canvas></div>
+            </section>
+        </main>
     </div>
 
 <script>
-    // =================================================================
-    // CONFIGURAÇÃO
-    // =================================================================
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwjy5v5GNNnt6NB_T29Sa6n4nJhPTm6G2eGaiSuXYHLx-6i34n1tpbhN8Uzv_rJx9jZ/exec";
+    const SCRIPT_URL = "SUA_URL_DO_APPS_SCRIPT_AQUI"; // <-- LEMBRE-SE DE COLOCAR SUA URL CORRETA AQUI
 
-    // =================================================================
-    // ESTADO DA APLICAÇÃO
-    // =================================================================
     let rawData = [];
-    let skuChartInstance, collectorChartInstance, trendChartInstance, hourlyChartInstance;
-    let currentSkuSort = 'quantity';
-    let activeDateFilter = 'all';
+    let trendChartInstance;
 
-    // =================================================================
-    // FUNÇÕES DE UI (INTERFACE DO USUÁRIO)
-    // =================================================================
     function showLoading() {
         document.getElementById('loading-overlay').style.display = 'flex';
         document.getElementById('error-overlay').style.display = 'none';
-        document.getElementById('dashboard-content').classList.add('hidden');
     }
 
     function showError(message) {
@@ -102,64 +73,105 @@
 
     function showDashboard() {
         document.getElementById('loading-overlay').style.display = 'none';
-        document.getElementById('error-overlay').style.display = 'none';
         document.getElementById('dashboard-content').classList.remove('hidden');
     }
 
-    // =================================================================
-    // FUNÇÃO PRINCIPAL DE BUSCA DE DADOS
-    // =================================================================
     async function fetchData() {
         try {
             showLoading();
-
-            if (!SCRIPT_URL || SCRIPT_URL === "COLE_SUA_URL_DO_APPS_SCRIPT_AQUI") {
-                throw new Error("A URL do Google Apps Script não foi configurada.");
-            }
-
             const response = await fetch(SCRIPT_URL + "?v=" + new Date().getTime());
-            if (!response.ok) {
-                throw new Error(`Erro na rede: ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error(`Erro na rede: ${response.status}`);
             const data = await response.json();
-
-            if (data.error) {
-                throw new Error(`Erro vindo do servidor: ${data.error}`);
-            }
-
+            if (data.error) throw new Error(`Erro vindo do servidor: ${data.error}`);
+            
             rawData = data.map(item => ({
                 ...item,
                 timestamp: new Date(item.timestamp),
                 date: new Date(item.date).toISOString().split('T')[0]
             }));
-
+            
             initializeApp();
-
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
             showError(`Erro ao carregar dados: ${error.message}`);
         }
     }
 
-    // =================================================================
-    // FUNÇÃO DE INICIALIZAÇÃO E RENDERIZAÇÃO
-    // =================================================================
-    function initializeApp() {
-        // Esta função será chamada após os dados serem carregados com sucesso.
-        // Aqui entrará todo o código que cria os filtros, os KPIs e os gráficos.
-        // Por enquanto, vamos apenas mostrar o dashboard.
-        
-        // Exemplo: document.getElementById('main-content').innerHTML = '<h1>Dados Carregados!</h1>';
-        
-        showDashboard();
-        // setupDateFilters();
-        // updateDashboard('all');
+    function setupDateFilters() {
+        const dates = [...new Set(rawData.map(item => item.date))].sort((a,b) => new Date(b) - new Date(a));
+        const container = document.getElementById('date-filters-container');
+        container.innerHTML = '<button class="filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>';
+        dates.forEach(date => {
+            const btn = document.createElement('button');
+            const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            btn.textContent = `Dia ${formattedDate}`;
+            btn.dataset.date = date;
+            btn.className = 'filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
+            container.appendChild(btn);
+        });
     }
     
-    // =================================================================
-    // INICIA O PROCESSO
-    // =================================================================
+    function updateDashboard(filterDate = 'all') {
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.date === filterDate));
+        
+        const filteredData = filterDate === 'all' ? rawData : rawData.filter(item => item.date === filterDate);
+        
+        document.getElementById('total-items').textContent = filteredData.reduce((sum, item) => sum + item.quantity, 0).toLocaleString('pt-BR');
+        document.getElementById('total-entries').textContent = filteredData.length.toLocaleString('pt-BR');
+        document.getElementById('unique-skus').textContent = new Set(filteredData.map(item => item.sku)).size;
+        
+        renderTrendChart(filteredData);
+    }
+
+    function renderTrendChart(data) {
+        const trendData = data.reduce((acc, item) => {
+            acc[item.date] = (acc[item.date] || 0) + item.quantity;
+            return acc;
+        }, {});
+
+        const sortedDates = Object.keys(trendData).sort((a,b) => new Date(a) - new Date(b));
+        const labels = sortedDates.map(date => new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+        const chartData = sortedDates.map(date => trendData[date]);
+
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        if (trendChartInstance) trendChartInstance.destroy();
+
+        trendChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Quantidade Diária',
+                    data: chartData,
+                    fill: true,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    tension: 0.3
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: '#d1d5db' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                    x: { ticks: { color: '#d1d5db' }, grid: { display: false } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    function initializeApp() {
+        showDashboard();
+        setupDateFilters();
+        updateDashboard('all');
+        
+        document.getElementById('date-filters-container').addEventListener('click', (e) => {
+            if (e.target.classList.contains('filter-btn')) {
+                updateDashboard(e.target.dataset.date);
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', fetchData);
 </script>
 </body>
