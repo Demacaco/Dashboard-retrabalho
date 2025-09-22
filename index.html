@@ -47,26 +47,6 @@
             background-color: #10b981;
             color: white;
         }
-        #form-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(17, 24, 39, 0.95);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-        }
-        .form-container {
-            background-color: #1f2937;
-            border-radius: 12px;
-            padding: 2rem;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-        }
     </style>
 </head>
 <body class="text-gray-300">
@@ -75,61 +55,11 @@
         <p>A carregar dados ao vivo da planilha...</p>
     </div>
 
-    <div id="form-overlay">
-        <div class="form-container">
-            <h2 class="text-2xl font-bold text-white mb-6 text-center">Lançar Retrabalho</h2>
-            <form id="rework-form">
-                <div class="mb-4">
-                    <label class="block text-gray-300 mb-2" for="collector">Coletor:</label>
-                    <input type="text" id="collector" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="Seu nome" required>
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block text-gray-300 mb-2" for="brand">Marca:</label>
-                    <select id="brand" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" required>
-                        <option value="">Selecione uma marca</option>
-                        <option value="Haojue">Haojue</option>
-                        <option value="Zontes">Zontes</option>
-                        <option value="Hisun">Hisun</option>
-                        <option value="Kymco">Kymco</option>
-                        <option value="Suzuki">Suzuki</option>
-                    </select>
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block text-gray-300 mb-2" for="sku">Código (SKU):</label>
-                    <input type="text" id="sku" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="Código do produto" required>
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block text-gray-300 mb-2" for="quantity">Quantidade:</label>
-                    <input type="number" id="quantity" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" min="1" required>
-                </div>
-                
-                <div class="mb-6">
-                    <label class="block text-gray-300 mb-2" for="location">Localização:</label>
-                    <input type="text" id="location" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="Localização do item">
-                </div>
-                
-                <div class="flex justify-between">
-                    <button type="button" id="cancel-form" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-500">Cancelar</button>
-                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-500">Lançar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
         
         <header class="text-center mb-12">
-            <h1 class="text-3xl md:text-4xl font-bold text-white">Análise de Retrabalhos</h1>
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Dashboard de Retrabalhos</h1>
             <p id="dashboard-subtitle" class="text-lg text-gray-400 mt-2">Análise do Período Completo</p>
-            
-            <div class="mt-6">
-                <button id="open-form-btn" class="bg-green-600 hover:bg-green-500 text-white font-semibold py-3 px-6 rounded-lg transition">
-                    + Novo Lançamento
-                </button>
-            </div>
         </header>
 
         <main>
@@ -236,18 +166,72 @@
         // Função principal para buscar dados da planilha
         async function fetchData() {
             try {
+                console.log("Iniciando busca de dados...");
                 const response = await fetch(SCRIPT_URL);
                 if (!response.ok) {
                     throw new Error(`Erro na rede: ${response.statusText}`);
                 }
                 const data = await response.json();
                 
-                rawData = data.map(item => ({
-                    ...item,
-                    timestamp: new Date(item.timestamp),
-                    date: new Date(item.date).toISOString().split('T')[0] 
-                }));
+                console.log("Dados recebidos do Google Sheets:", data);
+                
+                if (!data || data.length === 0) {
+                    throw new Error("Nenhum dado recebido da planilha");
+                }
+                
+                // Verificar a estrutura do primeiro item para entender a organização
+                console.log("Estrutura do primeiro item:", Object.keys(data[0]));
+                console.log("Primeiro item completo:", data[0]);
+                
+                // Processar os dados do Google Sheets
+                rawData = data.map((item, index) => {
+                    console.log(`Processando item ${index}:`, item);
+                    
+                    // Extrair dados básicos - tentar diferentes nomes de propriedades
+                    const timestamp = item.timestamp || item.Timestamp || item.data || item.Data || item['Data do Retrabalho'] || '';
+                    const date = item.date || item.Date || item['Data do Retrabalho'] || timestamp || '';
+                    const collector = item.collector || item.Coletor || item.coletor || item['Coletor'] || 'N/A';
+                    const sku = item.sku || item.SKU || item.codigo || item.Código || item['Código'] || 'N/A';
+                    const quantity = parseInt(item.quantity || item.Quantidade || item.quantidade || item['Quantidade'] || 0);
+                    const location = item.location || item.Localização || item.localizacao || item['Localização'] || '';
+                    
+                    // Extrair marca - tentar diferentes possibilidades
+                    let brand = item.brand || item.Marca || item.marca || item['Marca'] || '';
+                    
+                    // Se ainda não encontrou a marca, verificar todas as propriedades
+                    if (!brand) {
+                        for (const key in item) {
+                            if (typeof item[key] === 'string') {
+                                const value = item[key].trim();
+                                if (['Haojue', 'Zontes', 'Hisun', 'Kymco', 'Suzuki'].some(brandName => 
+                                    value.includes(brandName))) {
+                                    brand = value;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Validar dados essenciais
+                    if (!timestamp || !date) {
+                        console.warn(`Item ${index} sem timestamp ou data:`, item);
+                    }
+                    
+                    return {
+                        timestamp: new Date(timestamp),
+                        date: new Date(date).toISOString().split('T')[0],
+                        collector: collector,
+                        sku: sku,
+                        quantity: isNaN(quantity) ? 0 : quantity,
+                        location: location,
+                        brand: brand || 'Não especificado',
+                        originalData: item // Manter dados originais para debug
+                    };
+                }).filter(item => item.timestamp.toString() !== 'Invalid Date' && item.date !== 'Invalid Date');
 
+                console.log("Dados processados com sucesso. Total de itens válidos:", rawData.length);
+                console.log("Amostra dos dados processados:", rawData.slice(0, 3));
+                
                 initializeApp();
                 
             } catch (error) {
@@ -255,6 +239,7 @@
                 document.getElementById('loading-overlay').innerHTML = `
                     <div class="text-center">
                         <p class="text-red-400 mb-4">Erro ao carregar dados: ${error.message}</p>
+                        <p class="text-gray-400 text-sm mb-4">Verifique o console para mais detalhes</p>
                         <button onclick="fetchData()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                             Tentar Novamente
                         </button>
@@ -265,8 +250,13 @@
 
         // Função para inicializar o dashboard após os dados serem carregados
         function initializeApp() {
+            console.log("Inicializando dashboard...");
+            
+            // Esconder loading e mostrar dashboard
             document.getElementById('loading-overlay').style.display = 'none';
             document.getElementById('dashboard-content').classList.remove('hidden');
+            
+            console.log("Dashboard visível. Configurando componentes...");
 
             setupDateFilters();
             setupBrandFilters();
@@ -276,6 +266,13 @@
             // Adiciona a data e hora da atualização no rodapé
             document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
 
+            // Configurar eventos
+            setupEventListeners();
+            
+            console.log("Dashboard inicializado com sucesso!");
+        }
+
+        function setupEventListeners() {
             // Configura o que acontece ao clicar no botão de ordenar
             document.getElementById('sort-sku-chart').addEventListener('click', () => {
                 let dataToSummarize = filterData(rawData, activeDateFilter, activeBrandFilter);
@@ -306,32 +303,13 @@
                     updateDashboard(activeDateFilter, brand);
                 }
             });
-            
-            // Configura o botão de abrir formulário
-            document.getElementById('open-form-btn').addEventListener('click', () => {
-                document.getElementById('form-overlay').style.display = 'flex';
-            });
-            
-            // Configura o botão de cancelar formulário
-            document.getElementById('cancel-form').addEventListener('click', () => {
-                document.getElementById('form-overlay').style.display = 'none';
-                document.getElementById('rework-form').reset();
-            });
-            
-            // Configura o envio do formulário
-            document.getElementById('rework-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                // Aqui você pode adicionar a lógica para enviar os dados do formulário
-                alert('Funcionalidade de envio será implementada em breve!');
-                document.getElementById('form-overlay').style.display = 'none';
-                document.getElementById('rework-form').reset();
-            });
         }
 
         function setupDateFilters() {
             const dates = [...new Set(rawData.map(item => item.date))].sort();
             const container = document.getElementById('date-filters-container');
             container.innerHTML = '<button class="filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>';
+            
             dates.forEach(date => {
                 const btn = document.createElement('button');
                 const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
@@ -340,20 +318,34 @@
                 btn.className = 'filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
                 container.appendChild(btn);
             });
+            
+            console.log("Filtros de data configurados. Total de datas:", dates.length);
         }
         
         function setupBrandFilters() {
             // Extrai marcas únicas dos dados
-            const brands = [...new Set(rawData.map(item => item.brand).filter(brand => brand))].sort();
+            const brands = [...new Set(rawData.map(item => item.brand).filter(brand => 
+                brand && brand.trim() !== '' && brand !== 'Não especificado'
+            ))].sort();
+            
             const container = document.getElementById('brand-filters-container');
             
-            brands.forEach(brand => {
-                const btn = document.createElement('button');
-                btn.textContent = brand;
-                btn.dataset.brand = brand;
-                btn.className = 'brand-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
-                container.appendChild(btn);
-            });
+            console.log("Marcas encontradas:", brands);
+            
+            // Se não houver marcas, exibe uma mensagem
+            if (brands.length === 0) {
+                container.innerHTML += '<p class="text-gray-400 text-sm">Nenhuma marca encontrada nos dados</p>';
+                console.log("Nenhuma marca encontrada nos dados");
+            } else {
+                brands.forEach(brand => {
+                    const btn = document.createElement('button');
+                    btn.textContent = brand;
+                    btn.dataset.brand = brand;
+                    btn.className = 'brand-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
+                    container.appendChild(btn);
+                });
+                console.log(`Botões de marca criados: ${brands.length} marcas`);
+            }
         }
         
         function filterData(data, dateFilter, brandFilter) {
@@ -421,6 +413,8 @@
             renderSkuChart(skuSummary, currentSkuSort);
             renderCollectorCards(collectorSummary);
             renderHourlyChart(filteredData);
+            
+            console.log(`Dashboard atualizado: ${filteredData.length} registros, ${totalItems} itens`);
         }
         
         function renderTrendChart() {
