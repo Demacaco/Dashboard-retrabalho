@@ -3,271 +3,471 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Retrabalhos</title>
+    <title>Acompanhamento de Retrabalhos - Gestão de Estoque - Análise do Período</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
         body {
-            background-color: #f5f7f9;
-            color: #333;
-            padding: 20px;
-            line-height: 1.6;
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
         }
-        
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #3498db;
-        }
-        
-        h2 {
-            color: #34495e;
-            margin: 20px 0 15px 0;
-            font-size: 20px;
-        }
-        
-        .filter-table {
+        .chart-container {
+            position: relative;
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
         }
-        
-        .filter-table th, .filter-table td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: center;
-        }
-        
-        .filter-table th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-        }
-        
-        .filter-table td {
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .filter-table td:hover {
-            background-color: #eef7ff;
-        }
-        
-        .filter-table .active {
-            background-color: #3498db;
+        .filter-btn.active {
+            background-color: #3b82f6;
             color: white;
-            font-weight: bold;
         }
-        
-        .divider {
-            height: 1px;
-            background: linear-gradient(to right, transparent, #3498db, transparent);
-            margin: 25px 0;
-        }
-        
-        .metrics {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border-left: 4px solid #3498db;
-        }
-        
-        .error-container {
-            background-color: #ffebee;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 20px 0;
-            font-size: 14px;
-            border-left: 4px solid #c62828;
-        }
-        
-        .error-container h3 {
-            margin-bottom: 10px;
-            color: #b71c1c;
-        }
-        
-        .error-list {
-            list-style-type: none;
-        }
-        
-        .error-list li {
-            padding: 5px 0;
-            border-bottom: 1px solid #ffcdd2;
-        }
-        
-        .loading {
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(17, 24, 39, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-size: 1.2rem;
+            padding: 1rem;
             text-align: center;
-            padding: 20px;
-            color: #7f8c8d;
-        }
-        
-        .success-message {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 20px 0;
-            display: none;
-        }
-        
-        @media (max-width: 768px) {
-            .filter-table {
-                font-size: 14px;
-            }
-            
-            .filter-table th, .filter-table td {
-                padding: 8px 5px;
-            }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Dashboard de Retrabalhos</h1>
+<body class="text-gray-300">
+
+    <div id="loading-overlay">
+        <p>A carregar dados ao vivo da planilha...</p>
+    </div>
+
+    <div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
         
-        <h2>Análise de Retrabalhos</h2>
+        <header class="text-center mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Dashboard de Retrabalhos</h1>
+            <p id="dashboard-subtitle" class="text-lg text-gray-400 mt-2">Análise do Período Completo</p>
+        </header>
+
+        <main>
+            <section id="filters" class="mb-8 bg-gray-800 rounded-xl p-6 shadow-lg">
+                <h2 class="text-lg font-semibold text-white mb-3 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-blue-400"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+                    Filtrar por Período
+                </h2>
+                <div id="date-filters-container" class="flex flex-wrap gap-2">
+                    <button class="filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>
+                </div>
+            </section>
+
+            <section id="kpis" class="mb-12">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg transition hover:transform hover:-translate-y-1">
+                        <h3 class="text-lg font-semibold text-gray-400">Quantidade Total de Itens</h3>
+                        <p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p>
+                    </div>
+                    <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg transition hover:transform hover:-translate-y-1">
+                        <h3 class="text-lg font-semibold text-gray-400">Total de Registos</h3>
+                        <p id="total-entries" class="text-4xl font-bold text-blue-400 mt-2">0</p>
+                    </div>
+                    <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg transition hover:transform hover:-translate-y-1">
+                        <h3 class="text-lg font-semibold text-gray-400">SKUs Únicos</h3>
+                        <p id="unique-skus" class="text-4xl font-bold text-blue-400 mt-2">0</p>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="bg-gray-800 rounded-xl p-6 shadow-lg mb-12">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-green-400"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                    Tendência de Retrabalhos por Dia
+                </h2>
+                <p class="text-gray-400 mb-4">Volume total de itens em retrabalho a cada dia, para identificar picos de atividade.</p>
+                <div class="chart-container" style="max-height: 350px;">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </section>
+            
+            <section class="bg-gray-800 rounded-xl p-6 shadow-lg mb-12">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-yellow-400"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    Análise de Retrabalhos por Hora do Dia
+                </h2>
+                <p class="text-gray-400 mb-4">Horários de pico em que os retrabalhos são registados, ajudando a identificar padrões de produtividade.</p>
+                <div class="chart-container">
+                    <canvas id="hourlyChart"></canvas>
+                </div>
+            </section>
+
+            <section id="charts" class="mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                         <h2 class="text-xl font-bold text-white flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-purple-400"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                            Top 10 Itens por Quantidade
+                        </h2>
+                         <button id="sort-sku-chart" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 w-full sm:w-auto">Ordenar</button>
+                    </div>
+                    <p class="text-gray-400 mb-4">Os itens com maior volume de peças em retrabalho no período selecionado.</p>
+                    <div class="chart-container">
+                        <canvas id="skuChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-red-400"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        Atividade por Coletor
+                    </h2>
+                    <p class="text-gray-400 mb-4">Registos feitos por cada operador no período selecionado.</p>
+                    <div id="collector-container" class="space-y-4 mt-6">
+                    </div>
+                </div>
+            </section>
+            
+        </main>
         
-        <h3>Filtrar por Período</h3>
-        <table class="filter-table">
-            <tr>
-                <th>IDE</th>
-                <th>Semana</th>
-                <th>Mês</th>
-                <th>Ver Tudo</th>
-            </tr>
-            <tr>
-                <td class="active">Todos os Dias</td>
-                <td>15/09</td>
-                <td>16/09</td>
-                <td>17/09</td>
-            </tr>
-            <tr>
-                <td>18/09</td>
-                <td>19/09</td>
-                <td></td>
-                <td></td>
-            </tr>
-        </table>
-        
-        <div class="divider"></div>
-        
-        <h2>Quantidade Total de Itens</h2>
-        <div class="metrics">
-            <p><strong>Total de Itens:</strong> <span id="totalItems">0</span></p>
-            <p><strong>Itens com Retrabalho:</strong> <span id="reworkItems">0</span></p>
-            <p><strong>Taxa de Retrabalho:</strong> <span id="reworkRate">0%</span></p>
-        </div>
-        
-        <div class="success-message" id="successMessage">
-            Dados carregados com sucesso!
-        </div>
-        
-        <div class="error-container">
-            <h3>Erros Corrigidos:</h3>
-            <ul class="error-list">
-                <li>✓ Problema com WebAssembly resolvido</li>
-                <li>✓ Erro de referência "end@Rommitted is not defined" corrigido</li>
-                <li>✓ Função initializeApp() implementada corretamente</li>
-                <li>✓ Configuração de filtros de data funcionando</li>
-                <li>✓ Dados sendo carregados corretamente</li>
-            </ul>
-        </div>
+        <footer class="text-center mt-12 text-gray-500 text-sm">
+            <p>ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025 | v1.1</p>
+            <p>Última atualização: <span id="update-timestamp">Carregando...</span></p>
+        </footer>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Simular um pequeno atraso no carregamento
-            setTimeout(function() {
-                initializeApp();
-            }, 1500);
-        });
-        
-        function initializeApp() {
+        // ❗️ IMPORTANTE: Substitua a linha abaixo pela URL da sua implantação do App da Web do Google Apps Script
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw1Euk7DJtyZH6v5byzXDTY8lMcJlRMQjFIKfbn1ROxkQspn3ugvS0eou-lOZlJFDgu/exec";
+
+        let rawData = [];
+        let skuChartInstance, trendChartInstance, hourlyChartInstance;
+        let currentSkuSort = 'quantity';
+        let activeDateFilter = 'all';
+
+        // Função principal para buscar dados da planilha
+        async function fetchData() {
             try {
-                // Configurar filtros de data
-                setupDateFilters();
+                const response = await fetch(SCRIPT_URL);
+                if (!response.ok) {
+                    throw new Error(`Erro na rede: ${response.statusText}`);
+                }
+                const data = await response.json();
                 
-                // Simular carregamento de dados
-                fetchData();
+                rawData = data.map(item => ({
+                    ...item,
+                    timestamp: new Date(item.timestamp),
+                    date: new Date(item.date).toISOString().split('T')[0] 
+                }));
+
+                initializeApp();
                 
             } catch (error) {
-                console.error('Erro na inicialização:', error);
+                console.error('Erro ao carregar dados:', error);
+                document.getElementById('loading-overlay').innerHTML = `
+                    <div class="text-center">
+                        <p class="text-red-400 mb-4">Erro ao carregar dados: ${error.message}</p>
+                        <button onclick="fetchData()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            Tentar Novamente
+                        </button>
+                    </div>
+                `;
             }
         }
-        
-        function setupDateFilters() {
-            const tableCells = document.querySelectorAll('.filter-table td');
+
+        // Função para inicializar o dashboard após os dados serem carregados
+        function initializeApp() {
+            document.getElementById('loading-overlay').style.display = 'none';
+            document.getElementById('dashboard-content').classList.remove('hidden');
+
+            setupDateFilters();
+            updateDashboard('all');
+            renderTrendChart();
+
+            // Adiciona a data e hora da atualização no rodapé
+            document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
+
+            // Configura o que acontece ao clicar no botão de ordenar
+            document.getElementById('sort-sku-chart').addEventListener('click', () => {
+                let dataToSummarize = rawData;
+                if(activeDateFilter !== 'all') {
+                    dataToSummarize = rawData.filter(item => item.date === activeDateFilter);
+                }
+                const skuSummary = dataToSummarize.reduce((acc, item) => {
+                    acc[item.sku] = (acc[item.sku] || 0) + item.quantity;
+                    return acc;
+                }, {});
+
+                currentSkuSort = currentSkuSort === 'quantity' ? 'alphabetical' : 'quantity';
+                document.getElementById('sort-sku-chart').textContent = currentSkuSort === 'quantity' ? 'Ordenar por SKU' : 'Ordenar por Qtd.';
+                renderSkuChart(skuSummary, currentSkuSort);
+            });
             
-            tableCells.forEach(cell => {
-                if (cell.textContent.trim() !== '') {
-                    cell.addEventListener('click', function() {
-                        // Remover classe active de todas as células
-                        tableCells.forEach(c => c.classList.remove('active'));
-                        
-                        // Adicionar classe active à célula clicada
-                        this.classList.add('active');
-                        
-                        // Recarregar dados com o filtro selecionado
-                        fetchData();
-                    });
+            // Configura o que acontece ao clicar nos filtros de data
+            document.getElementById('date-filters-container').addEventListener('click', (e) => {
+                if (e.target.classList.contains('filter-btn')) {
+                    const date = e.target.dataset.date;
+                    updateDashboard(date);
                 }
             });
         }
-        
-        function fetchData() {
-            // Mostrar loading
-            document.getElementById('successMessage').style.display = 'none';
-            
-            // Simular uma requisição assíncrona
-            setTimeout(function() {
-                // Gerar dados aleatórios para demonstração
-                const totalItems = Math.floor(Math.random() * 500) + 300;
-                const reworkItems = Math.floor(totalItems * (Math.random() * 0.2 + 0.05));
-                const reworkRate = ((reworkItems / totalItems) * 100).toFixed(1);
-                
-                // Atualizar a interface
-                document.getElementById('totalItems').textContent = totalItems;
-                document.getElementById('reworkItems').textContent = reworkItems;
-                document.getElementById('reworkRate').textContent = reworkRate + '%';
-                
-                // Mostrar mensagem de sucesso
-                document.getElementById('successMessage').style.display = 'block';
-                
-            }, 1000);
-        }
-        
-        // Corrigir o erro ReferenceError: end@Rommitted is not defined
-        // Esta função substitui a implementação problemática
-        function setupDateFiltersFixed() {
-            const dateFilters = document.querySelectorAll('.filter-table td');
-            const startDate = new Date();
-            
-            dateFilters.forEach(filter => {
-                filter.addEventListener('click', function() {
-                    // Lógica de filtro corrigida
-                    const endDate = new Date(); // Esta variável estava indefinida no código original
-                    
-                    // Aqui viria a lógica real de filtragem
-                    console.log('Filtrando de', startDate, 'até', endDate);
-                });
+
+        function setupDateFilters() {
+            const dates = [...new Set(rawData.map(item => item.date))].sort();
+            const container = document.getElementById('date-filters-container');
+            container.innerHTML = '<button class="filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>';
+            dates.forEach(date => {
+                const btn = document.createElement('button');
+                const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                btn.textContent = `Dia ${formattedDate}`;
+                btn.dataset.date = date;
+                btn.className = 'filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
+                container.appendChild(btn);
             });
         }
+
+        function updateDashboard(filterDate = 'all') {
+            activeDateFilter = filterDate;
+            
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.date === filterDate);
+            });
+
+            let filteredData = rawData;
+            const subtitle = document.getElementById('dashboard-subtitle');
+            if (filterDate !== 'all') {
+                filteredData = rawData.filter(item => item.date === filterDate);
+                const formattedDate = new Date(filterDate + 'T00:00:00').toLocaleDateString('pt-BR', { dateStyle: 'long' });
+                subtitle.textContent = `Análise do dia ${formattedDate}`;
+            } else {
+                subtitle.textContent = 'Análise do Período Completo';
+            }
+            
+            const totalItems = filteredData.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById('total-items').textContent = totalItems.toLocaleString('pt-BR');
+            
+            const totalEntries = filteredData.length;
+            document.getElementById('total-entries').textContent = totalEntries.toLocaleString('pt-BR');
+
+            const skuSummary = filteredData.reduce((acc, item) => {
+                acc[item.sku] = (acc[item.sku] || 0) + item.quantity;
+                return acc;
+            }, {});
+            
+            const uniqueSkus = Object.keys(skuSummary).length;
+            document.getElementById('unique-skus').textContent = uniqueSkus;
+
+            const collectorSummary = filteredData.reduce((acc, item) => {
+                acc[item.collector] = (acc[item.collector] || 0) + 1;
+                return acc;
+            }, {});
+
+            renderSkuChart(skuSummary, currentSkuSort);
+            renderCollectorCards(collectorSummary);
+            renderHourlyChart(filteredData);
+        }
+        
+        function renderTrendChart() {
+            const trendData = rawData.reduce((acc, item) => {
+                acc[item.date] = (acc[item.date] || 0) + item.quantity;
+                return acc;
+            }, {});
+
+            const sortedDates = Object.keys(trendData).sort();
+            const labels = sortedDates.map(date => new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+            const data = sortedDates.map(date => trendData[date]);
+
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            if (trendChartInstance) trendChartInstance.destroy();
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+            trendChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Quantidade Diária de Itens',
+                        data: data,
+                        fill: true,
+                        backgroundColor: gradient,
+                        borderColor: 'rgba(96, 165, 250, 1)',
+                        pointBackgroundColor: 'rgba(96, 165, 250, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(96, 165, 250, 1)',
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#d1d5db' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#d1d5db' }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderHourlyChart(data) {
+            const hourlyData = data.reduce((acc, item) => {
+                const hour = item.timestamp.getHours();
+                acc[hour] = (acc[hour] || 0) + 1;
+                return acc;
+            }, {});
+
+            const labels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}h`);
+            const chartData = labels.map((_, index) => hourlyData[index] || 0);
+
+            const ctx = document.getElementById('hourlyChart').getContext('2d');
+            if (hourlyChartInstance) hourlyChartInstance.destroy();
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(34, 197, 94, 0.8)');
+            gradient.addColorStop(1, 'rgba(34, 197, 94, 0.2)');
+
+            hourlyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nº de Registos por Hora',
+                        data: chartData,
+                        backgroundColor: gradient,
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'Nº de Registos', color: '#d1d5db' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#d1d5db' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#d1d5db' }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderSkuChart(summary, sort = 'quantity') {
+            if (skuChartInstance) skuChartInstance.destroy();
+
+            const sortedData = Object.entries(summary);
+            if (sort === 'quantity') {
+                sortedData.sort(([, a], [, b]) => b - a);
+            } else {
+                sortedData.sort(([a], [b]) => a.localeCompare(b));
+            }
+
+            const top10Data = sortedData.slice(0, 10);
+            const labels = top10Data.map(item => item[0]);
+            const data = top10Data.map(item => item[1]);
+
+            const ctx = document.getElementById('skuChart').getContext('2d');
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(168, 85, 247, 0.8)');
+            gradient.addColorStop(1, 'rgba(168, 85, 247, 0.2)');
+
+            skuChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Quantidade em Retrabalho',
+                        data: data,
+                        backgroundColor: gradient,
+                        borderColor: 'rgba(168, 85, 247, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    responsive: true,
+                    indexAxis: 'y',
+                    scales: {
+                        y: { 
+                            ticks: { 
+                                color: '#d1d5db',
+                                callback: function(val) { const label = this.getLabelForValue(val); return label.length > 20 ? label.substr(0, 20) + '...' : label; }
+                            },
+                            grid: { display: false }
+                        },
+                        x: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'Quantidade de Peças', color: '#d1d5db' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#d1d5db' }
+                        }
+                    },
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { title: (items) => items[0].label } } }
+                }
+            });
+        }
+
+        function renderCollectorCards(summary) {
+            const container = document.getElementById('collector-container');
+            container.innerHTML = '';
+            
+            const totalEntries = Object.values(summary).reduce((sum, count) => sum + count, 0);
+            if (totalEntries === 0) {
+                container.innerHTML = `<p class="text-gray-400 text-center">Nenhum registo para este período.</p>`;
+                return;
+            }
+
+            const sortedCollectors = Object.entries(summary).sort(([, a], [, b]) => b - a);
+
+            sortedCollectors.forEach(([collectorId, count]) => {
+                const percentage = totalEntries > 0 ? (count / totalEntries) * 100 : 0;
+                const cardHTML = `
+                    <div class="flex items-center p-4 bg-gray-900 rounded-lg">
+                        <div class="p-3 rounded-full bg-red-500/20 text-red-400 mr-4">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-center mb-1">
+                                <p class="font-semibold text-white">Coletor ${collectorId}</p>
+                                <p class="text-sm font-medium text-gray-300">${count} Registos</p>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2.5">
+                                <div class="bg-red-400 h-2.5 rounded-full" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        // Inicia o processo de busca de dados ao carregar a página
+        document.addEventListener('DOMContentLoaded', fetchData);
     </script>
 </body>
 </html>
