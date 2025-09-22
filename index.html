@@ -4,175 +4,388 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de Retrabalhos</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #111827; }
-        .chart-container { position: relative; width: 100%; max-width: 800px; margin: auto; height: 400px; max-height: 50vh; }
-        .filter-btn.active { background-color: #3b82f6; color: white; }
-        #loading-overlay, #error-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(17, 24, 39, 0.95); display: flex; justify-content: center; align-items: center; z-index: 9999; color: white; text-align: center; padding: 1rem; }
-        #error-overlay { display: none; flex-direction: column; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7f9;
+            color: #333;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        h2 {
+            color: #34495e;
+            margin: 25px 0 15px 0;
+            font-size: 20px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .filter-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 25px;
+        }
+        
+        .filter-options {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-option {
+            padding: 8px 16px;
+            background-color: #eef2f7;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-option:hover {
+            background-color: #dfe6f0;
+        }
+        
+        .filter-option.active {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .date-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .date-filter {
+            padding: 8px 12px;
+            background-color: #f0f7ff;
+            border-radius: 6px;
+            border: 1px solid #d0e5ff;
+            min-width: 80px;
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        .date-filter.active {
+            background-color: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .divider {
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 20px 0;
+        }
+        
+        .metrics-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .metric-title {
+            font-size: 16px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+        
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .chart-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+        
+        .chart-title {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .chart {
+            height: 300px;
+            position: relative;
+        }
+        
+        .bar {
+            position: absolute;
+            bottom: 0;
+            width: 40px;
+            background-color: #3498db;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s;
+        }
+        
+        .bar-label {
+            position: absolute;
+            top: -25px;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+        }
+        
+        .x-axis {
+            position: absolute;
+            bottom: -30px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+        }
+        
+        .x-label {
+            font-size: 12px;
+            width: 40px;
+            text-align: center;
+        }
+        
+        .error-message {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+        }
+        
+        @media (max-width: 768px) {
+            .metrics-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-options, .date-filters {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
-<body class="text-gray-300">
-
-    <div id="loading-overlay">
-        <div class="flex flex-col items-center">
-            <svg class="animate-spin h-8 w-8 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <p>A carregar dados ao vivo...</p>
-        </div>
-    </div>
-
-    <div id="error-overlay">
-        <div class="flex flex-col items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <p id="error-message" class="mb-6 max-w-lg"></p>
-            <button onclick="location.reload();" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Tentar Novamente</button>
-        </div>
-    </div>
-
-    <div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
-        <header class="text-center mb-12">
-            <h1 class="text-3xl md:text-4xl font-bold text-white">Dashboard de Retrabalhos</h1>
-            <p id="dashboard-subtitle" class="text-lg text-gray-400 mt-2">Análise do Período Completo</p>
+<body>
+    <div class="container">
+        <header>
+            <h1>Dashboard de Retrabalhos</h1>
         </header>
-        <main>
-            <section id="filters" class="mb-8 bg-gray-800 rounded-xl p-6 shadow-lg">
-                <h2 class="text-lg font-semibold text-white mb-3">Filtrar por Período</h2>
-                <div id="date-filters-container" class="flex flex-wrap gap-2"></div>
-            </section>
-            <section id="kpis" class="mb-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg"><h3 class="text-lg font-semibold text-gray-400">Quantidade Total de Itens</h3><p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p></div>
-                <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg"><h3 class="text-lg font-semibold text-gray-400">Total de Registos</h3><p id="total-entries" class="text-4xl font-bold text-blue-400 mt-2">0</p></div>
-                <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg"><h3 class="text-lg font-semibold text-gray-400">SKUs Únicos</h3><p id="unique-skus" class="text-4xl font-bold text-blue-400 mt-2">0</p></div>
-            </section>
-            <section class="bg-gray-800 rounded-xl p-6 shadow-lg mb-12">
-                <h2 class="text-xl font-bold text-white mb-4">Tendência de Retrabalhos por Dia</h2>
-                <div class="chart-container" style="max-height: 350px;"><canvas id="trendChart"></canvas></div>
-            </section>
-        </main>
+        
+        <section>
+            <h2>Análise de Retrabalhos</h2>
+            
+            <div class="filter-section">
+                <h3>Filtrar por Período</h3>
+                
+                <div class="filter-options">
+                    <div class="filter-option active">IDE</div>
+                    <div class="filter-option">Semana</div>
+                    <div class="filter-option">Mês</div>
+                    <div class="filter-option">Ver Tudo</div>
+                </div>
+                
+                <div class="date-filters">
+                    <div class="date-filter active">Todos os Dias</div>
+                    <div class="date-filter">15/09</div>
+                    <div class="date-filter">16/09</div>
+                    <div class="date-filter">17/09</div>
+                    <div class="date-filter">18/09</div>
+                    <div class="date-filter">19/09</div>
+                </div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <h2>Quantidade Total de Itens</h2>
+            
+            <div class="metrics-section">
+                <div class="metric-card">
+                    <div class="metric-title">Itens com Retrabalho</div>
+                    <div class="metric-value">142</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Taxa de Retrabalho</div>
+                    <div class="metric-value">12.8%</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Tempo Médio de Retrabalho</div>
+                    <div class="metric-value">3.2h</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title">Retrabalhos por Dia</div>
+                <div class="chart" id="dailyChart">
+                    <!-- Gráfico será gerado por JavaScript -->
+                </div>
+            </div>
+            
+            <div class="error-message" id="errorMessage" style="display: none;">
+                <!-- Mensagens de erro serão exibidas aqui -->
+            </div>
+        </section>
     </div>
 
-<script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwjy5v5GNNnt6NB_T29Sa6n4nJhPTm6G2eGaiSuXYHLx-6i34n1tpbhN8Uzv_rJx9jZ/exec"; // <-- LEMBRE-SE DE COLOCAR SUA URL CORRETA AQUI
-
-    let rawData = [];
-    let trendChartInstance;
-
-    function showLoading() {
-        document.getElementById('loading-overlay').style.display = 'flex';
-        document.getElementById('error-overlay').style.display = 'none';
-    }
-
-    function showError(message) {
-        document.getElementById('loading-overlay').style.display = 'none';
-        document.getElementById('error-message').textContent = message;
-        document.getElementById('error-overlay').style.display = 'flex';
-    }
-
-    function showDashboard() {
-        document.getElementById('loading-overlay').style.display = 'none';
-        document.getElementById('dashboard-content').classList.remove('hidden');
-    }
-
-    async function fetchData() {
-        try {
-            showLoading();
-            const response = await fetch(SCRIPT_URL + "?v=" + new Date().getTime());
-            if (!response.ok) throw new Error(`Erro na rede: ${response.status}`);
-            const data = await response.json();
-            if (data.error) throw new Error(`Erro vindo do servidor: ${data.error}`);
-            
-            rawData = data.map(item => ({
-                ...item,
-                timestamp: new Date(item.timestamp),
-                date: new Date(item.date).toISOString().split('T')[0]
-            }));
-            
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
             initializeApp();
-        } catch (error) {
-            console.error('Erro ao carregar dados:', error);
-            showError(`Erro ao carregar dados: ${error.message}`);
+        });
+        
+        function initializeApp() {
+            try {
+                setupDateFilters();
+                renderDailyChart();
+                simulateDataLoading();
+            } catch (error) {
+                showError('Erro ao inicializar aplicação: ' + error.message);
+            }
         }
-    }
-
-    function setupDateFilters() {
-        const dates = [...new Set(rawData.map(item => item.date))].sort((a,b) => new Date(b) - new Date(a));
-        const container = document.getElementById('date-filters-container');
-        container.innerHTML = '<button class="filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>';
-        dates.forEach(date => {
-            const btn = document.createElement('button');
-            const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-            btn.textContent = `Dia ${formattedDate}`;
-            btn.dataset.date = date;
-            btn.className = 'filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
-            container.appendChild(btn);
-        });
-    }
-    
-    function updateDashboard(filterDate = 'all') {
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.date === filterDate));
         
-        const filteredData = filterDate === 'all' ? rawData : rawData.filter(item => item.date === filterDate);
+        function setupDateFilters() {
+            const dateFilters = document.querySelectorAll('.date-filter');
+            dateFilters.forEach(filter => {
+                filter.addEventListener('click', function() {
+                    dateFilters.forEach(f => f.classList.remove('active'));
+                    this.classList.add('active');
+                    // Aqui iria a lógica para filtrar os dados com base na seleção
+                    simulateDataLoading();
+                });
+            });
+            
+            const filterOptions = document.querySelectorAll('.filter-option');
+            filterOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    filterOptions.forEach(o => o.classList.remove('active'));
+                    this.classList.add('active');
+                    // Aqui iria a lógica para alterar o tipo de visualização
+                    simulateDataLoading();
+                });
+            });
+        }
         
-        document.getElementById('total-items').textContent = filteredData.reduce((sum, item) => sum + item.quantity, 0).toLocaleString('pt-BR');
-        document.getElementById('total-entries').textContent = filteredData.length.toLocaleString('pt-BR');
-        document.getElementById('unique-skus').textContent = new Set(filteredData.map(item => item.sku)).size;
-        
-        renderTrendChart(filteredData);
-    }
-
-    function renderTrendChart(data) {
-        const trendData = data.reduce((acc, item) => {
-            acc[item.date] = (acc[item.date] || 0) + item.quantity;
-            return acc;
-        }, {});
-
-        const sortedDates = Object.keys(trendData).sort((a,b) => new Date(a) - new Date(b));
-        const labels = sortedDates.map(date => new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
-        const chartData = sortedDates.map(date => trendData[date]);
-
-        const ctx = document.getElementById('trendChart').getContext('2d');
-        if (trendChartInstance) trendChartInstance.destroy();
-
-        trendChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Quantidade Diária',
-                    data: chartData,
-                    fill: true,
-                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    tension: 0.3
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, ticks: { color: '#d1d5db' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-                    x: { ticks: { color: '#d1d5db' }, grid: { display: false } }
-                },
-                plugins: { legend: { display: false } }
+        function renderDailyChart() {
+            const chart = document.getElementById('dailyChart');
+            chart.innerHTML = '';
+            
+            // Dados de exemplo para o gráfico
+            const data = [12, 19, 15, 17, 14, 10, 16];
+            const labels = ['15/09', '16/09', '17/09', '18/09', '19/09', '20/09', '21/09'];
+            const maxValue = Math.max(...data);
+            const chartHeight = chart.offsetHeight - 40;
+            
+            // Criar elementos do gráfico
+            const xAxis = document.createElement('div');
+            xAxis.className = 'x-axis';
+            
+            for (let i = 0; i < data.length; i++) {
+                const barHeight = (data[i] / maxValue) * chartHeight;
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = barHeight + 'px';
+                bar.style.left = (i * 60 + 30) + 'px';
+                
+                const label = document.createElement('div');
+                label.className = 'bar-label';
+                label.textContent = data[i];
+                bar.appendChild(label);
+                
+                chart.appendChild(bar);
+                
+                const xLabel = document.createElement('div');
+                xLabel.className = 'x-label';
+                xLabel.textContent = labels[i];
+                xAxis.appendChild(xLabel);
             }
-        });
-    }
-
-    function initializeApp() {
-        showDashboard();
-        setupDateFilters();
-        updateDashboard('all');
+            
+            chart.appendChild(xAxis);
+        }
         
-        document.getElementById('date-filters-container').addEventListener('click', (e) => {
-            if (e.target.classList.contains('filter-btn')) {
-                updateDashboard(e.target.dataset.date);
-            }
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', fetchData);
-</script>
+        function simulateDataLoading() {
+            // Simula o carregamento de dados
+            showLoading();
+            
+            setTimeout(() => {
+                try {
+                    hideLoading();
+                    renderDailyChart();
+                } catch (error) {
+                    showError('Erro ao carregar dados: ' + error.message);
+                }
+            }, 1000);
+        }
+        
+        function showLoading() {
+            // Poderia implementar um indicador de carregamento
+        }
+        
+        function hideLoading() {
+            // Ocultaria o indicador de carregamento
+        }
+        
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            
+            // Oculta a mensagem de erro após 5 segundos
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Corrigindo o erro ReferenceError: end@Rommitted is not defined
+        // Esta função seria chamada quando necessário
+        function fetchData(startDate, endDate) {
+            // Lógica para buscar dados do servidor
+            console.log('Buscando dados de', startDate, 'até', endDate);
+            // Simulação de retorno de dados
+            return {
+                totalItems: 142,
+                reworkRate: 12.8,
+                avgReworkTime: 3.2,
+                dailyData: [12, 19, 15, 17, 14, 10, 16]
+            };
+        }
+    </script>
 </body>
 </html>
