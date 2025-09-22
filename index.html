@@ -175,7 +175,21 @@
                 }
                 
                 const data = await response.json();
-                
+                // ... (código anterior)
+
+177: const data = await response.json();
+
+     // ===== NOVO BLOCO DE VERIFICAÇÃO DE ERRO =====
+     if (data.error) {
+       // Se a API retornou um objeto de erro, nós paramos tudo e mostramos essa mensagem.
+       throw new Error(`Erro vindo do servidor: ${data.error}`);
+     }
+     // ===========================================
+
+     // Processar os dados recebidos
+     rawData = data.map(item => ({
+       ...item,
+// ... (resto do código)
                 // Processar os dados recebidos
                 rawData = data.map(item => ({
                     ...item,
