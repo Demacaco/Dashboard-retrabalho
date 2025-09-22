@@ -193,14 +193,38 @@
                     ...item,
                     timestamp: new Date(item.timestamp),
                     date: new Date(item.date).toISOString().split('T')[0]
-                }));
+              try {
+    showLoading();
 
-                // Inicializar a aplicação com os dados
-                initializeApp();
-                
-            } catch (error) {
-                console.error('Erro ao carregar dados:', error);
-                showError(`Erro ao carregar dados: ${error.message}`);
+    const response = await fetch(SCRIPT_URL + "?v=" + new Date().getTime());
+    if (!response.ok) {
+        throw new Error(`Erro na rede: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // NOVO BLOCO DE VERIFICAÇÃO DE ERRO
+    if (data.error) {
+      // Se a API retornou um objeto de erro, nós paramos tudo e mostramos essa mensagem.
+      throw new Error(`Erro vindo do servidor: ${data.error}`);
+    }
+
+    // Processar os dados recebidos (A VERSÃO CORRETA E ÚNICA)
+    rawData = data.map(item => ({
+        ...item,
+        timestamp: new Date(item.timestamp),
+        date: new Date(item.date).toISOString().split('T')[0]
+    }));
+
+    // Inicializar a aplicação com os dados
+    initializeApp();
+    
+} catch (error) {
+    console.error('Erro ao carregar dados:', error);
+    showError(`Erro ao carregar dados: ${error.message}`);
+}
+
+               
             }
         }
 
