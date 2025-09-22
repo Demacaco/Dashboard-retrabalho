@@ -43,6 +43,30 @@
             padding: 1rem;
             text-align: center;
         }
+        .brand-btn.active {
+            background-color: #10b981;
+            color: white;
+        }
+        #form-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(17, 24, 39, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .form-container {
+            background-color: #1f2937;
+            border-radius: 12px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
 <body class="text-gray-300">
@@ -51,11 +75,61 @@
         <p>A carregar dados ao vivo da planilha...</p>
     </div>
 
+    <div id="form-overlay">
+        <div class="form-container">
+            <h2 class="text-2xl font-bold text-white mb-6 text-center">Lançar Retrabalho</h2>
+            <form id="rework-form">
+                <div class="mb-4">
+                    <label class="block text-gray-300 mb-2" for="collector">Coletor:</label>
+                    <input type="text" id="collector" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="Seu nome" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-300 mb-2" for="brand">Marca:</label>
+                    <select id="brand" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" required>
+                        <option value="">Selecione uma marca</option>
+                        <option value="Haojue">Haojue</option>
+                        <option value="Zontes">Zontes</option>
+                        <option value="Hisun">Hisun</option>
+                        <option value="Kymco">Kymco</option>
+                        <option value="Suzuki">Suzuki</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-300 mb-2" for="sku">Código (SKU):</label>
+                    <input type="text" id="sku" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="Código do produto" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-300 mb-2" for="quantity">Quantidade:</label>
+                    <input type="number" id="quantity" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" min="1" required>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-gray-300 mb-2" for="location">Localização:</label>
+                    <input type="text" id="location" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="Localização do item">
+                </div>
+                
+                <div class="flex justify-between">
+                    <button type="button" id="cancel-form" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-500">Cancelar</button>
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-500">Lançar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
         
         <header class="text-center mb-12">
             <h1 class="text-3xl md:text-4xl font-bold text-white">Dashboard de Retrabalhos</h1>
             <p id="dashboard-subtitle" class="text-lg text-gray-400 mt-2">Análise do Período Completo</p>
+            
+            <div class="mt-6">
+                <button id="open-form-btn" class="bg-green-600 hover:bg-green-500 text-white font-semibold py-3 px-6 rounded-lg transition">
+                    + Novo Lançamento
+                </button>
+            </div>
         </header>
 
         <main>
@@ -64,8 +138,16 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-blue-400"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
                     Filtrar por Período
                 </h2>
-                <div id="date-filters-container" class="flex flex-wrap gap-2">
+                <div id="date-filters-container" class="flex flex-wrap gap-2 mb-4">
                     <button class="filter-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>
+                </div>
+                
+                <h2 class="text-lg font-semibold text-white mb-3 flex items-center mt-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-green-400"><path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/><path d="M8 16h.01"/></svg>
+                    Filtrar por Marca
+                </h2>
+                <div id="brand-filters-container" class="flex flex-wrap gap-2">
+                    <button class="brand-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-brand="all">Todas</button>
                 </div>
             </section>
 
@@ -149,6 +231,7 @@
         let skuChartInstance, trendChartInstance, hourlyChartInstance;
         let currentSkuSort = 'quantity';
         let activeDateFilter = 'all';
+        let activeBrandFilter = 'all';
 
         // Função principal para buscar dados da planilha
         async function fetchData() {
@@ -186,7 +269,8 @@
             document.getElementById('dashboard-content').classList.remove('hidden');
 
             setupDateFilters();
-            updateDashboard('all');
+            setupBrandFilters();
+            updateDashboard('all', 'all');
             renderTrendChart();
 
             // Adiciona a data e hora da atualização no rodapé
@@ -194,10 +278,7 @@
 
             // Configura o que acontece ao clicar no botão de ordenar
             document.getElementById('sort-sku-chart').addEventListener('click', () => {
-                let dataToSummarize = rawData;
-                if(activeDateFilter !== 'all') {
-                    dataToSummarize = rawData.filter(item => item.date === activeDateFilter);
-                }
+                let dataToSummarize = filterData(rawData, activeDateFilter, activeBrandFilter);
                 const skuSummary = dataToSummarize.reduce((acc, item) => {
                     acc[item.sku] = (acc[item.sku] || 0) + item.quantity;
                     return acc;
@@ -212,8 +293,38 @@
             document.getElementById('date-filters-container').addEventListener('click', (e) => {
                 if (e.target.classList.contains('filter-btn')) {
                     const date = e.target.dataset.date;
-                    updateDashboard(date);
+                    activeDateFilter = date;
+                    updateDashboard(date, activeBrandFilter);
                 }
+            });
+            
+            // Configura o que acontece ao clicar nos filtros de marca
+            document.getElementById('brand-filters-container').addEventListener('click', (e) => {
+                if (e.target.classList.contains('brand-btn')) {
+                    const brand = e.target.dataset.brand;
+                    activeBrandFilter = brand;
+                    updateDashboard(activeDateFilter, brand);
+                }
+            });
+            
+            // Configura o botão de abrir formulário
+            document.getElementById('open-form-btn').addEventListener('click', () => {
+                document.getElementById('form-overlay').style.display = 'flex';
+            });
+            
+            // Configura o botão de cancelar formulário
+            document.getElementById('cancel-form').addEventListener('click', () => {
+                document.getElementById('form-overlay').style.display = 'none';
+                document.getElementById('rework-form').reset();
+            });
+            
+            // Configura o envio do formulário
+            document.getElementById('rework-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                // Aqui você pode adicionar a lógica para enviar os dados do formulário
+                alert('Funcionalidade de envio será implementada em breve!');
+                document.getElementById('form-overlay').style.display = 'none';
+                document.getElementById('rework-form').reset();
             });
         }
 
@@ -230,20 +341,60 @@
                 container.appendChild(btn);
             });
         }
-
-        function updateDashboard(filterDate = 'all') {
-            activeDateFilter = filterDate;
+        
+        function setupBrandFilters() {
+            // Extrai marcas únicas dos dados
+            const brands = [...new Set(rawData.map(item => item.brand).filter(brand => brand))].sort();
+            const container = document.getElementById('brand-filters-container');
             
+            brands.forEach(brand => {
+                const btn = document.createElement('button');
+                btn.textContent = brand;
+                btn.dataset.brand = brand;
+                btn.className = 'brand-btn bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
+                container.appendChild(btn);
+            });
+        }
+        
+        function filterData(data, dateFilter, brandFilter) {
+            let filteredData = data;
+            
+            if (dateFilter !== 'all') {
+                filteredData = filteredData.filter(item => item.date === dateFilter);
+            }
+            
+            if (brandFilter !== 'all') {
+                filteredData = filteredData.filter(item => item.brand === brandFilter);
+            }
+            
+            return filteredData;
+        }
+
+        function updateDashboard(dateFilter = 'all', brandFilter = 'all') {
+            activeDateFilter = dateFilter;
+            activeBrandFilter = brandFilter;
+            
+            // Atualiza botões ativos para filtros de data
             document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.date === filterDate);
+                btn.classList.toggle('active', btn.dataset.date === dateFilter);
+            });
+            
+            // Atualiza botões ativos para filtros de marca
+            document.querySelectorAll('.brand-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.brand === brandFilter);
             });
 
-            let filteredData = rawData;
+            const filteredData = filterData(rawData, dateFilter, brandFilter);
+            
             const subtitle = document.getElementById('dashboard-subtitle');
-            if (filterDate !== 'all') {
-                filteredData = rawData.filter(item => item.date === filterDate);
-                const formattedDate = new Date(filterDate + 'T00:00:00').toLocaleDateString('pt-BR', { dateStyle: 'long' });
+            if (dateFilter !== 'all' && brandFilter !== 'all') {
+                const formattedDate = new Date(dateFilter + 'T00:00:00').toLocaleDateString('pt-BR', { dateStyle: 'long' });
+                subtitle.textContent = `Análise do dia ${formattedDate} - Marca: ${brandFilter}`;
+            } else if (dateFilter !== 'all') {
+                const formattedDate = new Date(dateFilter + 'T00:00:00').toLocaleDateString('pt-BR', { dateStyle: 'long' });
                 subtitle.textContent = `Análise do dia ${formattedDate}`;
+            } else if (brandFilter !== 'all') {
+                subtitle.textContent = `Análise da marca ${brandFilter}`;
             } else {
                 subtitle.textContent = 'Análise do Período Completo';
             }
