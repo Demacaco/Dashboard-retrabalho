@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análise de Retrabalhos</title>
+    <title>Dashboard de Retrabalhos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,6 +21,7 @@
         <div class="flex flex-col items-center">
             <svg class="animate-spin h-8 w-8 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <p>A carregar dados ao vivo...</p>
+        </div>
     </div>
 
     <div id="error-overlay">
@@ -40,7 +41,6 @@
             <section id="filters" class="mb-8 bg-gray-800 rounded-xl p-6 shadow-lg">
                 <h2 class="text-lg font-semibold text-white mb-3">Filtrar por Período</h2>
                 <div id="date-filters-container" class="flex flex-wrap gap-2 mb-6"></div>
-                
                 <h2 class="text-lg font-semibold text-white mb-3">Filtrar por Marca</h2>
                 <div id="brand-filters-container" class="flex flex-wrap gap-2"></div>
             </section>
@@ -66,7 +66,6 @@
                     <div id="collector-container" class="space-y-4 mt-6"></div>
                 </div>
             </section>
-
         </main>
         <footer class="text-center mt-12 text-gray-500 text-sm">
             <p>ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025</p>
@@ -75,16 +74,15 @@
     </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6rBSQ2ajsBvWlYMIBYsMvpCVtYqlsQEQUl1HPWNH_594OkNS0Bhq-HtikspY-trKM/exec";
+    // URL JÁ CORRIGIDA PARA A VERSÃO DA PLANILHA. NÃO PRECISA ALTERAR.
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkyNJ7IjF7DVvQq3yb8NRfiRFYOuznyVzIpv8xR6k_KAmUfJKv6ZqNyqmYNrc21yI6/exec";
 
-    let rawData = [];
-    let trendChartInstance, brandChartInstance;
-    let activeDateFilter = 'all';
-    let activeBrandFilter = 'all';
+    let rawData = [], trendChartInstance, brandChartInstance;
+    let activeDateFilter = 'all', activeBrandFilter = 'all';
 
-    function showLoading() { /* ... */ }
-    function showError(message) { /* ... */ }
-    function showDashboard() { /* ... */ }
+    function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; document.getElementById('error-overlay').style.display = 'none'; }
+    function showError(message) { document.getElementById('loading-overlay').style.display = 'none'; document.getElementById('error-message').textContent = message; document.getElementById('error-overlay').style.display = 'flex'; }
+    function showDashboard() { document.getElementById('loading-overlay').style.display = 'none'; document.getElementById('dashboard-content').classList.remove('hidden'); }
 
     async function fetchData() {
         try {
@@ -102,35 +100,31 @@
         }
     }
 
-    function setupDateFilters() {
+    function setupFilters() {
         const dates = [...new Set(rawData.map(item => item.date))].sort((a,b) => new Date(b) - new Date(a));
-        const container = document.getElementById('date-filters-container');
-        container.innerHTML = '<button class="filter-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>';
+        const dateContainer = document.getElementById('date-filters-container');
+        dateContainer.innerHTML = '<button class="filter-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>';
         dates.forEach(date => {
             const btn = document.createElement('button');
             const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
             btn.textContent = `Dia ${formattedDate}`;
             btn.dataset.date = date;
             btn.className = 'filter-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
-            container.appendChild(btn);
+            dateContainer.appendChild(btn);
         });
-    }
 
-    // NOVA FUNÇÃO para criar os filtros de marca
-    function setupBrandFilters() {
         const brands = [...new Set(rawData.map(item => item.brand))].filter(Boolean).sort();
-        const container = document.getElementById('brand-filters-container');
-        container.innerHTML = '<button class="brand-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-brand="all">Todas</button>';
+        const brandContainer = document.getElementById('brand-filters-container');
+        brandContainer.innerHTML = '<button class="brand-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-brand="all">Todas</button>';
         brands.forEach(brand => {
             const btn = document.createElement('button');
             btn.textContent = brand;
             btn.dataset.brand = brand;
             btn.className = 'brand-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
-            container.appendChild(btn);
+            brandContainer.appendChild(btn);
         });
     }
     
-    // FUNÇÃO ATUALIZADA para filtrar por data E marca
     function updateDashboard(dateFilter = 'all', brandFilter = 'all') {
         activeDateFilter = dateFilter;
         activeBrandFilter = brandFilter;
@@ -139,76 +133,60 @@
         document.querySelectorAll('.brand-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.brand === brandFilter));
         
         let filteredData = rawData;
-        if (dateFilter !== 'all') {
-            filteredData = filteredData.filter(item => item.date === dateFilter);
-        }
-        if (brandFilter !== 'all') {
-            filteredData = filteredData.filter(item => item.brand === brandFilter);
-        }
+        if (dateFilter !== 'all') filteredData = filteredData.filter(item => item.date === dateFilter);
+        if (brandFilter !== 'all') filteredData = filteredData.filter(item => item.brand === brandFilter);
         
-        document.getElementById('total-items').textContent = filteredData.reduce((sum, item) => sum + item.quantity, 0).toLocaleString('pt-BR');
+        document.getElementById('total-items').textContent = filteredData.reduce((sum, item) => sum + (item.quantity || 0), 0).toLocaleString('pt-BR');
         document.getElementById('total-entries').textContent = filteredData.length.toLocaleString('pt-BR');
         document.getElementById('unique-skus').textContent = new Set(filteredData.map(item => item.sku)).size;
         
         renderTrendChart(filteredData);
-        renderBrandChart(filteredData); // Chama o novo gráfico
+        renderBrandChart(filteredData);
         renderCollectorCards(filteredData);
     }
 
-    // NOVA FUNÇÃO para renderizar o gráfico de marcas
+    function renderTrendChart(data) {
+        const trendData = data.reduce((acc, item) => { acc[item.date] = (acc[item.date] || 0) + (item.quantity || 0); return acc; }, {});
+        const sortedDates = Object.keys(trendData).sort((a,b) => new Date(a) - new Date(b));
+        const labels = sortedDates.map(date => new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+        const chartData = sortedDates.map(date => trendData[date]);
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        if (trendChartInstance) trendChartInstance.destroy();
+        trendChartInstance = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Quantidade', data: chartData, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 1)', tension: 0.3 }] }, options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#d1d5db' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, x: { ticks: { color: '#d1d5db' }, grid: { display: false } } }, plugins: { legend: { display: false } } } });
+    }
+
     function renderBrandChart(data) {
-        const brandSummary = data.reduce((acc, item) => {
-            if(item.brand) { acc[item.brand] = (acc[item.brand] || 0) + item.quantity; }
-            return acc;
-        }, {});
-        
+        const brandSummary = data.reduce((acc, item) => { if(item.brand) { acc[item.brand] = (acc[item.brand] || 0) + (item.quantity || 0); } return acc; }, {});
         const sortedBrands = Object.entries(brandSummary).sort(([,a],[,b]) => b - a);
         const labels = sortedBrands.map(item => item[0]);
         const chartData = sortedBrands.map(item => item[1]);
-
         const ctx = document.getElementById('brandChart').getContext('2d');
         if (brandChartInstance) brandChartInstance.destroy();
+        brandChartInstance = new Chart(ctx, { type: 'pie', data: { labels: labels, datasets: [{ label: 'Quantidade', data: chartData, backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#8b5cf6', '#eab308'], hoverOffset: 4 }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#d1d5db' } } } } });
+    }
 
-        brandChartInstance = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Quantidade por Marca',
-                    data: chartData,
-                    backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#8b5cf6', '#eab308'],
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'top', labels: { color: '#d1d5db' } } }
-            }
+    function renderCollectorCards(data) {
+        const collectorSummary = data.reduce((acc, item) => { acc[item.collector] = (acc[item.collector] || 0) + 1; return acc; }, {});
+        const sortedCollectors = Object.entries(collectorSummary).sort(([,a],[,b]) => b - a);
+        const container = document.getElementById('collector-container');
+        container.innerHTML = '';
+        sortedCollectors.forEach(([collectorId, count]) => {
+            container.innerHTML += `<div class="flex items-center p-4 bg-gray-900 rounded-lg"><div class="flex-grow"><div class="flex justify-between items-center"><p class="font-semibold text-white">Coletor ${collectorId}</p><p class="text-sm text-gray-300">${count} Registos</p></div></div></div>`;
         });
     }
 
-    function renderTrendChart(data) { /* ...código existente... */ }
-    function renderCollectorCards(data) { /* ...código existente... */ }
-    // As funções showLoading, showError, showDashboard, renderTrendChart, e renderCollectorCards foram omitidas por brevidade, mas devem estar aqui.
-
     function initializeApp() {
         showDashboard();
-        setupDateFilters();
-        setupBrandFilters(); // Chama a nova função
+        setupFilters();
         updateDashboard('all', 'all');
         document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
         
         document.getElementById('date-filters-container').addEventListener('click', (e) => {
-            if (e.target.classList.contains('filter-btn')) {
-                updateDashboard(e.target.dataset.date, activeBrandFilter);
-            }
+            if (e.target.classList.contains('filter-btn')) { updateDashboard(e.target.dataset.date, activeBrandFilter); }
         });
         
-        // NOVO EVENT LISTENER para os filtros de marca
         document.getElementById('brand-filters-container').addEventListener('click', (e) => {
-            if (e.target.classList.contains('brand-btn')) {
-                updateDashboard(activeDateFilter, e.target.dataset.brand);
-            }
+            if (e.target.classList.contains('brand-btn')) { updateDashboard(activeDateFilter, e.target.dataset.brand); }
         });
     }
 
