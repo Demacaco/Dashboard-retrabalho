@@ -74,13 +74,12 @@
     </div>
 
 <script>
-    // URL JÁ CORRIGIDA PARA A VERSÃO DA PLANILHA. NÃO PRECISA ALTERAR.
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6rBSQ2ajsBvWlYMIBYsMvpCVtYqlsQEQUl1HPWNH_594OkNS0Bhq-HtikspY-trKM/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzG3ED-EfmgOEiUc2ZVjpw3yQT3H9bMKqgWUJpbVxe5oSv9oKJKAq3-Omhvm4nLDMnN/exec";
 
     let rawData = [], trendChartInstance, brandChartInstance;
     let activeDateFilter = 'all', activeBrandFilter = 'all';
 
-    function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; document.getElementById('error-overlay').style.display = 'none'; }
+    function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
     function showError(message) { document.getElementById('loading-overlay').style.display = 'none'; document.getElementById('error-message').textContent = message; document.getElementById('error-overlay').style.display = 'flex'; }
     function showDashboard() { document.getElementById('loading-overlay').style.display = 'none'; document.getElementById('dashboard-content').classList.remove('hidden'); }
 
