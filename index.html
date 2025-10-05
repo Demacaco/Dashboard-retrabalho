@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+    <div class="text-center mb-8">
+    <button id="updateButton" onclick="refreshData()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center transition duration-300">
+        <svg class="w-5 h-5 mr-2 animate-spin hidden" id="loadingIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M20 4l-4 4M4 20l4-4"></path></svg>
+        <span id="buttonText">Atualizar Dados</span>
+    </button>
+</div>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de Retrabalhos</title>
@@ -190,6 +196,56 @@
     }
 
     document.addEventListener('DOMContentLoaded', fetchData);
+    // ... seu código de gráficos existente ...
+
+/**
+ * Função para atualizar os dados do dashboard sem recarregar a página.
+ */
+function refreshData() {
+    // Pega os elementos da página
+    const button = document.getElementById('updateButton');
+    const loadingIcon = document.getElementById('loadingIcon');
+    const buttonText = document.getElementById('buttonText');
+
+    // Mostra o ícone de carregamento, esconde o texto e desabilita o botão
+    loadingIcon.classList.remove('hidden');
+    buttonText.textContent = 'Atualizando...';
+    button.disabled = true;
+    button.classList.add('opacity-75', 'cursor-not-allowed');
+
+    // Chama a função do servidor que busca os dados do retrabalho
+    google.script.run
+        .withSuccessHandler(data => {
+            // A sua função que atualiza os cards e gráficos será chamada aqui
+            updateDashboard(data); // <-- Verifique se o nome da sua função é este
+            
+            // Restaura o botão ao estado original
+            loadingIcon.classList.add('hidden');
+            buttonText.textContent = 'Atualizar Dados';
+            button.disabled = false;
+            button.classList.remove('opacity-75', 'cursor-not-allowed');
+        })
+        .withFailureHandler(error => {
+            // Se der erro, também restaura o botão
+            onFailure(error); // <-- Verifique se o nome da sua função de erro é este
+            loadingIcon.classList.add('hidden');
+            buttonText.textContent = 'Tentar Novamente';
+            button.disabled = false;
+            button.classList.remove('opacity-75', 'cursor-not-allowed');
+        })
+        .calcularDadosDoRetrabalho(); // <<<====== MUITO IMPORTANTE!
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    // O código que já existe aqui continua igual
+    google.script.run
+        .withSuccessHandler(updateDashboard)
+        .withFailureHandler(onFailure)
+        .calcularDadosDoRetrabalho(); // <<<====== MUITO IMPORTANTE!
+});
+
+// ... resto do seu script
 </script>
 </body>
 </html>
