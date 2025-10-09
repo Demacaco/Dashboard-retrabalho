@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <div class="text-center mb-8">
-    <button id="updateButton" onclick="refreshData()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center transition duration-300">
-        <svg class="w-5 h-5 mr-2 animate-spin hidden" id="loadingIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M20 4l-4 4M4 20l4-4"></path></svg>
-        <span id="buttonText">Atualizar Dados</span>
-    </button>
-</div>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de Retrabalhos</title>
@@ -43,6 +37,14 @@
             <h1 class="text-3xl md:text-4xl font-bold text-white">Análise de Retrabalhos</h1>
             <p id="dashboard-subtitle" class="text-lg text-gray-400 mt-2">Análise do Período Completo</p>
         </header>
+        
+        <div class="text-center mb-8">
+            <button id="updateButton" onclick="refreshData()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center transition duration-300">
+                <svg class="w-5 h-5 mr-2 animate-spin hidden" id="loadingIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M20 4l-4 4M4 20l4-4"></path></svg>
+                <span id="buttonText">Atualizar Dados</span>
+            </button>
+        </div>
+
         <main>
             <section id="filters" class="mb-8 bg-gray-800 rounded-xl p-6 shadow-lg">
                 <h2 class="text-lg font-semibold text-white mb-3">Filtrar por Período</h2>
@@ -195,57 +197,56 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', fetchData);
-    // ... seu código de gráficos existente ...
+    /**
+     * Função para atualizar os dados do dashboard sem recarregar a página.
+     */
+    async function refreshData() {
+        // Pega os elementos do botão
+        const button = document.getElementById('updateButton');
+        const loadingIcon = document.getElementById('loadingIcon');
+        const buttonText = document.getElementById('buttonText');
 
-/**
- * Função para atualizar os dados do dashboard sem recarregar a página.
- */
-function refreshData() {
-    // Pega os elementos da página
-    const button = document.getElementById('updateButton');
-    const loadingIcon = document.getElementById('loadingIcon');
-    const buttonText = document.getElementById('buttonText');
+        // Mostra o estado de "carregando" no botão
+        loadingIcon.classList.remove('hidden');
+        buttonText.textContent = 'Atualizando...';
+        button.disabled = true;
+        button.classList.add('opacity-75', 'cursor-not-allowed');
 
-    // Mostra o ícone de carregamento, esconde o texto e desabilita o botão
-    loadingIcon.classList.remove('hidden');
-    buttonText.textContent = 'Atualizando...';
-    button.disabled = true;
-    button.classList.add('opacity-75', 'cursor-not-allowed');
+        try {
+            // Usa a mesma lógica de fetch que o carregamento inicial
+            const response = await fetch(SCRIPT_URL + "?v=" + new Date().getTime());
+            if (!response.ok) {
+                throw new Error(`Erro na rede: ${response.status}`);
+            }
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(`Erro retornado pelo script: ${data.error}`);
+            }
 
-    // Chama a função do servidor que busca os dados do retrabalho
-    google.script.run
-        .withSuccessHandler(data => {
-            // A sua função que atualiza os cards e gráficos será chamada aqui
-            updateDashboard(data); // <-- Verifique se o nome da sua função é este
+            // Atualiza os dados e a interface
+            rawData = data.map(item => ({...item, timestamp: new Date(item.timestamp), date: new Date(item.date).toISOString().split('T')[0] }));
             
-            // Restaura o botão ao estado original
+            // Reinicia os filtros e atualiza o dashboard com os novos dados
+            setupFilters();
+            updateDashboard('all', 'all'); // Reseta para a visão completa com os novos dados
+            document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
+            
+        } catch (error) {
+            console.error('Erro ao ATUALIZAR dados:', error);
+            // Em caso de erro, você pode mostrar uma mensagem para o usuário
+            alert('Falha ao atualizar os dados: ' + error.message);
+        } finally {
+            // Independentemente de sucesso ou falha, restaura o botão
             loadingIcon.classList.add('hidden');
             buttonText.textContent = 'Atualizar Dados';
             button.disabled = false;
             button.classList.remove('opacity-75', 'cursor-not-allowed');
-        })
-        .withFailureHandler(error => {
-            // Se der erro, também restaura o botão
-            onFailure(error); // <-- Verifique se o nome da sua função de erro é este
-            loadingIcon.classList.add('hidden');
-            buttonText.textContent = 'Tentar Novamente';
-            button.disabled = false;
-            button.classList.remove('opacity-75', 'cursor-not-allowed');
-        })
-        .calcularDadosDoRetrabalho(); // <<<====== MUITO IMPORTANTE!
-}
+        }
+    }
 
+    // Inicia o carregamento dos dados quando a página estiver pronta
+    document.addEventListener('DOMContentLoaded', fetchData);
 
-document.addEventListener('DOMContentLoaded', function() {
-    // O código que já existe aqui continua igual
-    google.script.run
-        .withSuccessHandler(updateDashboard)
-        .withFailureHandler(onFailure)
-        .calcularDadosDoRetrabalho(); // <<<====== MUITO IMPORTANTE!
-});
-
-// ... resto do seu script
 </script>
 </body>
 </html>
