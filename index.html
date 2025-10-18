@@ -196,6 +196,7 @@
         const ctx = document.getElementById('trendChart').getContext('2d'); if (trendChartInstance) trendChartInstance.destroy();
         trendChartInstance = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'Quantidade', data: chartData, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 3, tension: 0.4 }] }, options: { maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, ticks: { color: '#d1d5db' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, x: { ticks: { color: '#d1d5db' }, grid: { display: false } } }, plugins: { legend: { display: false } } } });
     }
+    
     function renderBrandChart(data) { /* ... código idêntico ao da resposta anterior ... */ 
         const brandSummary = data.reduce((acc, item) => { const brand = item.brand || 'Sem Marca'; acc[brand] = (acc[brand] || 0) + (item.quantity || 0); return acc; }, {});
         const sortedBrands = Object.entries(brandSummary).sort(([,a], [,b]) => b - a).slice(0, 8); const labels = sortedBrands.map(item => item[0]); const chartData = sortedBrands.map(item => item[1]);
