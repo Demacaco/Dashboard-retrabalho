@@ -19,6 +19,10 @@
         .kpi-card { background: linear-gradient(135deg, #1e293b, #334155); border-left: 4px solid #3b82f6; transition: all 0.3s ease; }
         .section-card { background: linear-gradient(135deg, #1e293b, #334155); }
         .brand-btn.active { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        
+        /* LINHA ADICIONADA PARA DEIXAR O TEXTO DO BOTÃO BONITO */
+        .brand-btn { text-transform: capitalize; }
+
         #error-message { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background-color: #ef4444; color: white; padding: 10px 20px; border-radius: 8px; z-index: 10000; display: none; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
     </style>
 </head>
@@ -105,9 +109,9 @@
             const result = await fetchDataWithJSONP();
             console.log("fetchDataWithJSONP concluído com sucesso."); 
             if (result && Array.isArray(result.data)) {
-                 processData(result.data);
-                 hideLoading(); 
-                 showDashboard(); 
+                processData(result.data);
+                hideLoading(); 
+                showDashboard(); 
             } else {
                 console.error("Formato de dados inválido recebido:", result); 
                 throw new Error("Dados recebidos inválidos ou vazios do script.");
@@ -130,7 +134,11 @@
             if (isNaN(dateObj.getTime())) { console.warn("Data inválida recebida, usando data atual:", dateValue, item); dateObj = new Date(); }
             return {
                 timestamp: dateObj, date: dateObj.toISOString().split('T')[0], collector: item.coletor || item.collector || 'Desconhecido',
-                brand: item.marca || item.brand || 'Sem Marca', sku: item.codigo || item.sku || 'N/A',
+                
+                /* LINHA MODIFICADA PARA PADRONIZAR AS MARCAS */
+                brand: (item.marca || item.brand || 'Sem Marca').toString().trim().toLowerCase(),
+                
+                sku: item.codigo || item.sku || 'N/A', 
                 quantity: parseInt(item.quantidade || item.quantity) || 0, location: item.localizacao || item.location || 'N/A'
             };
         });
@@ -155,7 +163,7 @@
         }
     }
     function initializeApp() { /* ... código idêntico ao da resposta anterior ... */ 
-         console.log("Iniciando initializeApp..."); 
+        console.log("Iniciando initializeApp..."); 
         setupBrandFilters(); 
         updateDashboard(); 
     }
@@ -201,7 +209,7 @@
         const brandSummary = data.reduce((acc, item) => { const brand = item.brand || 'Sem Marca'; acc[brand] = (acc[brand] || 0) + (item.quantity || 0); return acc; }, {});
         const sortedBrands = Object.entries(brandSummary).sort(([,a], [,b]) => b - a).slice(0, 8); const labels = sortedBrands.map(item => item[0]); const chartData = sortedBrands.map(item => item[1]);
         const ctx = document.getElementById('brandChart').getContext('2d'); if (brandChartInstance) brandChartInstance.destroy();
-        brandChartInstance = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ label: 'Quantidade', data: chartData, backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#8b5cf6', '#eab308', '#06b6d4', '#84cc16'], borderWidth: 2, borderColor: '#1e293b' }] }, options: { maintainAspectRatio: false, responsive: true, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '#d1d5db', font: { size: 12 }, padding: 15 } } } } });
+        brandChartInstance = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ label: 'Quantidade', data: chartData, backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#8b5cf6', '#eab308', '#06b6d4', '#84cc16'], borderWidth: 2, borderColor: '#1e293b' }] }, options: { maintainAspectRatio: false, responsive: true, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '#d1d5db', font: { size: 12 }, padding: 15, /* Adicionado para capitalizar labels da legenda */ transform: (label) => label.charAt(0).toUpperCase() + label.slice(1) } } } } });
     }
     function renderCollectorCards(data) { /* ... código idêntico ao da resposta anterior ... */ 
         const collectorSummary = data.reduce((acc, item) => { const collector = item.collector || 'Desconhecido'; acc[collector] = (acc[collector] || 0) + 1; return acc; }, {});
