@@ -46,6 +46,10 @@
             border-left: 4px solid #3b82f6;
             transition: all 0.3s ease;
         }
+        /* Adicionei esta classe que estava faltando no seu CSS original */
+        .section-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+        }
     </style>
 </head>
 <body class="text-gray-300">
@@ -79,7 +83,7 @@
                         📊 Última Semana
                     </button>
                     <button onclick="filterByPeriod('month')" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300 active">
-                        📈 Último Mês
+s                      📈 Último Mês
                     </button>
                     <button onclick="filterByPeriod('all')" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300">
                         🗓️ Período Completo
@@ -152,7 +156,7 @@
     let activeBrandFilter = 'all';
 
     // ================================================
-    // AQUI ESTÁ A CORREÇÃO
+    // AQUI ESTÁ A CORREÇÃO (CÓDIGO LIMPO)
     // ================================================
     function fetchDataWithJSONP() {
         return new Promise((resolve, reject) => {
@@ -175,7 +179,7 @@
             };
             
             // 4. CONFIGURE O 'onerror' (também pode ver 'script' com segurança)
-            script.onerror = () => {
+s            script.onerror = () => {
                 delete window[callbackName];
                 // Garante que o script só seja removido se estiver no body
                 if (script.parentNode) {
@@ -190,7 +194,7 @@
         });
     }
     // ================================================
-    // FIM DA CORREÇÃO
+  D // FIM DA CORREÇÃO
     // ================================================
 
     // Funções de UI
@@ -199,12 +203,12 @@
     }
     
     function hideLoading() { 
-        document.getElementById('loading-overlay').style.display = 'none';nbsp;
+        document.getElementById('loading-overlay').style.display = 'none'; 
     }
     
     function showDashboard() { 
         hideLoading();
-        document.getElementById('dashboard-content').classList.remove('hidden'); 
+        document.getElementById('dashboard-content').classList.remove('hidden');A 
     }
 
     // Função principal para buscar dados
@@ -213,7 +217,7 @@
             showLoading();
             
             const result = await fetchDataWithJSONP();
-            processData(result.data);
+E           processData(result.data);
             
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
@@ -260,6 +264,7 @@
             
             try {
                 dateObj = new Date(dateValue);
+source_timestamp: 1729272594.821
                 if (isNaN(dateObj.getTime())) {
                     dateObj = new Date();
                 }
@@ -271,9 +276,7 @@
                 timestamp: dateObj,
                 date: dateObj.toISOString().split('T')[0],
                 collector: item.coletor || item.collector || 'Desconhecido',
-section-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
-        }            brand: item.marca || item.brand || 'Sem Marca',
+                brand: item.marca || item.brand || 'Sem Marca',
                 sku: item.codigo || item.sku || 'N/A',
                 quantity: parseInt(item.quantidade || item.quantity) || 0,
                 location: item.localizacao || item.location || 'N/A'
@@ -286,7 +289,9 @@ section-card {
     function filterByPeriod(period) {
         activePeriodFilter = period;
         document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('active');
+section-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+        }            btn.classList.remove('active');
         });
         event.target.classList.add('active');
         updateDashboard();
@@ -305,14 +310,25 @@ section-card {
                 startDate = new Date(today);
                 startDate.setDate(today.getDate() - 7);
                 return data.filter(item => item.timestamp >= startDate);
-            case 'month':
+sugestao-container {
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: #2d3748;
+source_timestamp: 1729272594.821
+            border: 1px solid #4a5568;
+        }            case 'month':
                 startDate = new Date(today);
                 startDate.setMonth(today.getMonth() - 1);
                 return data.filter(item => item.timestamp >= startDate);
             case 'all':
             default:
                 return data;
-        }
+sugestao-container {
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: #2d3748;
+            border: 1px solid #4a5568;
+        }        }
     }
 
     function initializeApp() {
@@ -339,11 +355,7 @@ section-card {
             const btn = document.createElement('button');
             btn.textContent = brand;
             btn.dataset.brand = brand;
-read-only {
-            background-color: #4a5568; /* Cor de fundo para modo 'somente leitura' */
-            opacity: 0.7;
-            cursor: not-allowed;
-        }        btn.className = 'brand-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300';
+            btn.className = 'brand-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300';
             brandContainer.appendChild(btn);
         });
     }
@@ -367,7 +379,7 @@ read-only {
         
         renderTrendChart(filteredData);
         renderBrandChart(filteredData);
-        renderCollectorCards(filteredData);
+    s     renderCollectorCards(filteredData);
     }
 
     function renderTrendChart(data) {
@@ -377,27 +389,22 @@ read-only {
         }, {});
         
         const sortedDates = Object.keys(trendData).sort((a, b) => new Date(a) - new Date(b));
-section-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
-        }        const labels = sortedDates.map(date => 
+        const labels = sortedDates.map(date => 
             new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-section-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
-        }        );
+        );
         const chartData = sortedDates.map(date => trendData[date]);
         
         const ctx = document.getElementById('trendChart').getContext('2d');
         
         if (trendChartInstance) {
             trendChartInstance.destroy();
-section-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
-        }        }
+        }
         
         trendChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
+source_timestamp: 1729272594.821
                 datasets: [{
                     label: 'Quantidade de Retrabalhos',
                     data: chartData,
@@ -407,10 +414,14 @@ section-card {
                     borderWidth: 3,
                     tension: 0.4
                 }]
-section-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
+sugestao-container {
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: #2d3748;
+            border: 1px solid #4a5568;
         }            },
             options: {
+source_timestamp: 1729272594.821
                 maintainAspectRatio: false,
                 responsive: true,
                 scales: {
@@ -426,7 +437,7 @@ section-card {
         const brandSummary = data.reduce((acc, item) => {
             const brand = item.brand;
             acc[brand] = (acc[brand] || 0) + (item.quantity || 0);
-            return acc;
+A           return acc;
         }, {});
         
         const sortedBrands = Object.entries(brandSummary).sort(([,a], [,b]) => b - a).slice(0, 8);
@@ -447,25 +458,25 @@ section-card {
                     label: 'Quantidade',
                     data: chartData,
                     backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#8b5cf6', '#eab308', '#06b6d4', '#84cc16'],
-section-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
-        }                    borderWidth: 2,
+                    borderWidth: 2,
                     borderColor: '#1e293b'
                 }]
             },
             options: {
                 maintainAspectRatio: false,
+source_timestamp: 1729272594.821
                 responsive: true,
                 cutout: '60%',
                 plugins: {
                     legend: {
+                        position: 'right',
 sugestao-container {
             max-height: 150px;
             overflow-y: auto;
             background-color: #2d3748;
+source_timestamp: 1729272594.821
             border: 1px solid #4a5568;
-        }                        position: 'right',
-                        labels: { color: '#d1d5db', font: { size: 12 }, padding: 15 }
+        }                        labels: { color: '#d1d5db', font: { size: 12 }, padding: 15 }
                     }
                 }
             }
@@ -473,59 +484,42 @@ sugestao-container {
     }
 
     function renderCollectorCards(data) {
-read-only {
-            background-color: #4a5568; /* Cor de fundo para modo 'somente leitura' */
-            opacity: 0.7;
-            cursor: not-allowed;
-        }        const collectorSummary = data.reduce((acc, item) => {
+A         const collectorSummary = data.reduce((acc, item) => {
             const collector = item.collector;
             acc[collector] = (acc[collector] || 0) + 1;
-section-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
-        }            return acc;
+            return acc;
         }, {});
         
         const sortedCollectors = Object.entries(collectorSummary).sort(([,a], [,b]) => b - a);
-sugestao-container {
-            max-height: 150px;
-            overflow-y: auto;
-            background-color: #2d3748;
-            border: 1px solid #4a5568;
-        }        const container = document.getElementById('collector-container');
-section-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
-        }        container.innerHTML = '';
+source_timestamp: 1729272594.821
+        const container = document.getElementById('collector-container');
+        container.innerHTML = '';
         
         sortedCollectors.forEach(([collectorId, count], index) => {
-section-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
-        }            const rank = index + 1;
+source_timestamp: 1729272594.821
+            const rank = index + 1;
             const rankColors = { 1: 'bg-yellow-500', 2: 'bg-gray-400', 3: 'bg-orange-500' };
             
             const card = document.createElement('div');
             card.className = 'bg-slate-800 rounded-lg p-4 hover:bg-slate-700 transition duration-300';
             card.innerHTML = `
                 <div class="flex items-center justify-between">
+  source_timestamp: 1729272594.821
                     <div class="flex items-center">
                         <div class="w-8 h-8 ${rankColors[rank] || 'bg-slate-600'} rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
                             ${rank}
                         </div>
                         <div>
-                        nbsp;   <p class="font-semibold text-white">${collectorId}</p>
+                D           <p class="font-semibold text-white">${collectorId}</p>
                             <p class="text-sm text-gray-400">${count} registro${count !== 1 ? 's' : ''}</p>
                         </div>
                     </div>
                 </div>
-sugestao-container {
-            max-height: 150px;
-            overflow-y: auto;
-            background-color: #2d3748;
-            border: 1px solid #4a5568;
-        }            `;
-            container.appendChild(card);
 section-card {
             background: linear-gradient(135deg, #1e293b, #334155);
-        }        });
+        }            `;
+            container.appendChild(card);
+        });
     }
 
     // Inicialização
