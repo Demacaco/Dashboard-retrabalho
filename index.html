@@ -65,7 +65,7 @@
         <div class="flex flex-col items-center">
             <div class="spinner"></div>
             <p class="text-xl font-semibold">Carregando dados em tempo real...</p>
-            <p class="text-gray-400 mt-2">Conectando ao sistema de gestão</p>
+            <p class="text-gray-400 mt-2">Sistema integrado de monitoramento</p>
         </div>
     </div>
 
@@ -192,27 +192,14 @@
     </div>
 
 <script>
-    // Configuração
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxklfMS0nGOH6KqeIQAeFAWR6CFwaeVLpkIMarVTYU5P1gVYLlfSfwb-ZBXeyk1SEA/exec";
+    // Configuração - USE SUA NOVA URL AQUI!
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbymVMzJMICCc-iSUjltT1lLm2Rt1auNk5koXImfhHmENhaC6ql8NQfFfTAJHVkt167Q/exec";
+    
     let rawData = [];
     let trendChartInstance = null;
     let brandChartInstance = null;
-    let activePeriodFilter = 'month'; // Padrão: último mês
+    let activePeriodFilter = 'month';
     let activeBrandFilter = 'all';
-
-    // Estilo para spinner
-    const style = document.createElement('style');
-    style.textContent = `
-        .spinner-small {
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 2px solid #ffffff;
-            width: 16px;
-            height: 16px;
-            animation: spin 1s linear infinite;
-        }
-    `;
-    document.head.appendChild(style);
 
     // Funções de UI
     function showLoading() { 
@@ -228,26 +215,14 @@
         document.getElementById('dashboard-content').classList.remove('hidden'); 
     }
 
-    // Filtro por período
-    function filterByPeriod(period) {
-        activePeriodFilter = period;
-        
-        // Atualiza botões ativos
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        event.target.classList.add('active');
-        
-        updateDashboard();
-    }
-
-    // Buscar dados reais
+    // Função SIMPLES para buscar dados
     async function fetchRealData() {
         try {
             showLoading();
             
+            // URL direta - sem proxies complicados
             const url = `${SCRIPT_URL}?path=data&v=${new Date().getTime()}`;
-            console.log('Buscando dados reais:', url);
+            console.log('Buscando dados de:', url);
             
             const response = await fetch(url);
             
@@ -265,15 +240,14 @@
             
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
-            // Em caso de erro, tenta novamente após 3 segundos
-            setTimeout(fetchRealData, 3000);
+            // Tenta novamente após 5 segundos
+            setTimeout(fetchRealData, 5000);
         }
     }
 
     // Processar dados
     function processData(data) {
         rawData = data.map(item => {
-            // Encontra a data correta
             let dateValue = item.data || item.timestamp || item.date;
             let dateObj;
             
@@ -298,6 +272,19 @@
         });
 
         initializeApp();
+    }
+
+    // Filtro por período
+    function filterByPeriod(period) {
+        activePeriodFilter = period;
+        
+        // Atualiza botões ativos
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        updateDashboard();
     }
 
     // Aplicar filtro de período
@@ -541,11 +528,6 @@
             `;
             container.appendChild(card);
         });
-    }
-
-    // Atualizar dados
-    async function refreshData() {
-        await fetchRealData();
     }
 
     // Inicialização
