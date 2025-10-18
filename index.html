@@ -46,7 +46,8 @@
             border-left: 4px solid #3b82f6;
             transition: all 0.3s ease;
         }
-        /* Adicionei esta classe que estava faltando no seu CSS original */
+        
+        /* Classe que estava faltando no seu CSS original */
         .section-card {
             background: linear-gradient(135deg, #1e293b, #334155);
         }
@@ -83,7 +84,7 @@
                         📊 Última Semana
                     </button>
                     <button onclick="filterByPeriod('month')" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300 active">
-s                      📈 Último Mês
+                        📈 Último Mês
                     </button>
                     <button onclick="filterByPeriod('all')" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300">
                         🗓️ Período Completo
@@ -112,7 +113,7 @@ s                      📈 Último Mês
             <div class="kpi-card rounded-xl p-6 text-center">
                 <h3 class="text-lg font-semibold text-gray-400">Peças Únicas</h3>
                 <p id="unique-skus" class="text-4xl font-bold text-purple-400 mt-2">0</p>
-            </div>
+Z         </div>
         </section>
 
                 <section class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -135,14 +136,14 @@ s                      📈 Último Mês
             <div class="section-card rounded-xl p-6">
                 <h2 class="text-xl font-bold text-white mb-4">Atividade por Coletor</h2>
                 <div id="collector-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    </div>
+                              _   </div>
             </div>
         </section>
 
                 <footer class="text-center mt-12 text-gray-500 text-sm border-t border-gray-800 pt-6">
             <p class="font-semibold">ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025</p>
             <p>Última atualização: <span id="update-timestamp" class="text-blue-400"></span></p>
-        </footer>
+A       </footer>
     </div>
 
 <script>
@@ -167,26 +168,37 @@ s                      📈 Último Mês
             const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
             
             // 3. AGORA DEFINA A FUNÇÃO DE CALLBACK (ela pode ver 'script' com segurança)
-            window[callbackName] = function(data) {
+A           window[callbackName] = function(data) {
                 delete window[callbackName];
                 document.body.removeChild(script); // AGORA FUNCIONA
                 
                 if (data.success) {
+source_timestamp: 1729272828.167
                     resolve(data);
                 } else {
                     reject(new Error(data.error));
                 }
             };
-            
+           sugestao-container {
+            max-height: 150px;
+            overflow-y: auto;
+source_timestamp: 1729272828.167
+            background-color: #2d3748;
+            border: 1px solid #4a5568;
+        } 
             // 4. CONFIGURE O 'onerror' (também pode ver 'script' com segurança)
-s            script.onerror = () => {
+            script.onerror = () => {
                 delete window[callbackName];
                 // Garante que o script só seja removido se estiver no body
                 if (script.parentNode) {
                     script.parentNode.removeChild(script);
-                }
+section-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+        }            }
                 reject(new Error('Falha ao carregar dados'));
-            };
+section-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+        }        };
 
             // 5. CONFIGURE A ORIGEM E ADICIONE AO BODY
             script.src = `${SCRIPT_URL}?path=data&callback=${callbackName}&v=${new Date().getTime()}`;
@@ -194,7 +206,7 @@ s            script.onerror = () => {
         });
     }
     // ================================================
-  D // FIM DA CORREÇÃO
+    // FIM DA CORREÇÃO
     // ================================================
 
     // Funções de UI
@@ -207,8 +219,7 @@ s            script.onerror = () => {
     }
     
     function showDashboard() { 
-        hideLoading();
-        document.getElementById('dashboard-content').classList.remove('hidden');A 
+        document.getElementById('dashboard-content').classList.remove('hidden');source_timestamp: 1729272828.167
     }
 
     // Função principal para buscar dados
@@ -217,7 +228,7 @@ s            script.onerror = () => {
             showLoading();
             
             const result = await fetchDataWithJSONP();
-E           processData(result.data);
+            processData(result.data);
             
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
@@ -234,6 +245,7 @@ E           processData(result.data);
                 timestamp: new Date().toISOString(),
                 data: new Date().toISOString().split('T')[0],
                 coletor: 'COLETOR_001',
+source_timestamp: 1729272828.167
                 marca: 'Suzuki',
                 codigo: 'SKU_001',
                 quantidade: '5',
@@ -264,10 +276,9 @@ E           processData(result.data);
             
             try {
                 dateObj = new Date(dateValue);
-source_timestamp: 1729272594.821
                 if (isNaN(dateObj.getTime())) {
                     dateObj = new Date();
-                }
+          _   }
             } catch (e) {
                 dateObj = new Date();
             }
@@ -276,6 +287,7 @@ source_timestamp: 1729272594.821
                 timestamp: dateObj,
                 date: dateObj.toISOString().split('T')[0],
                 collector: item.coletor || item.collector || 'Desconhecido',
+source_timestamp: 1729272828.167
                 brand: item.marca || item.brand || 'Sem Marca',
                 sku: item.codigo || item.sku || 'N/A',
                 quantity: parseInt(item.quantidade || item.quantity) || 0,
@@ -289,9 +301,7 @@ source_timestamp: 1729272594.821
     function filterByPeriod(period) {
         activePeriodFilter = period;
         document.querySelectorAll('.filter-btn').forEach(btn => {
-section-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
-        }            btn.classList.remove('active');
+            btn.classList.remove('active');
         });
         event.target.classList.add('active');
         updateDashboard();
@@ -310,25 +320,14 @@ section-card {
                 startDate = new Date(today);
                 startDate.setDate(today.getDate() - 7);
                 return data.filter(item => item.timestamp >= startDate);
-sugestao-container {
-            max-height: 150px;
-            overflow-y: auto;
-            background-color: #2d3748;
-source_timestamp: 1729272594.821
-            border: 1px solid #4a5568;
-        }            case 'month':
+            case 'month':
                 startDate = new Date(today);
                 startDate.setMonth(today.getMonth() - 1);
                 return data.filter(item => item.timestamp >= startDate);
             case 'all':
             default:
                 return data;
-sugestao-container {
-            max-height: 150px;
-            overflow-y: auto;
-            background-color: #2d3748;
-            border: 1px solid #4a5568;
-        }        }
+        }
     }
 
     function initializeApp() {
@@ -351,10 +350,11 @@ sugestao-container {
         
         brandContainer.innerHTML = '<button class="brand-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300 active" data-brand="all">Todas as Marcas</button>';
         
-        brands.forEach(brand => {
+      _   brands.forEach(brand => {
             const btn = document.createElement('button');
             btn.textContent = brand;
             btn.dataset.brand = brand;
+source_timestamp: 1729272828.167
             btn.className = 'brand-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300';
             brandContainer.appendChild(btn);
         });
@@ -362,7 +362,9 @@ sugestao-container {
 
     function updateDashboard() {
         let filteredData = applyPeriodFilter(rawData);
-        
+section-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+        }        
         if (activeBrandFilter !== 'all') {
             filteredData = filteredData.filter(item => item.brand === activeBrandFilter);
         }
@@ -375,11 +377,12 @@ sugestao-container {
         
         document.getElementById('unique-skus').textContent = new Set(
             filteredData.map(item => item.sku).filter(sku => sku)
+end-user text
         ).size.toLocaleString('pt-BR');
         
         renderTrendChart(filteredData);
         renderBrandChart(filteredData);
-    s     renderCollectorCards(filteredData);
+        renderCollectorCards(filteredData);
     }
 
     function renderTrendChart(data) {
@@ -395,6 +398,7 @@ sugestao-container {
         const chartData = sortedDates.map(date => trendData[date]);
         
         const ctx = document.getElementById('trendChart').getContext('2d');
+source_timestamp: 1729272828.167
         
         if (trendChartInstance) {
             trendChartInstance.destroy();
@@ -404,7 +408,7 @@ sugestao-container {
             type: 'line',
             data: {
                 labels: labels,
-source_timestamp: 1729272594.821
+source_timestamp: 1729272828.167
                 datasets: [{
                     label: 'Quantidade de Retrabalhos',
                     data: chartData,
@@ -417,19 +421,24 @@ source_timestamp: 1729272594.821
 sugestao-container {
             max-height: 150px;
             overflow-y: auto;
+source_timestamp: 1729272828.167
             background-color: #2d3748;
             border: 1px solid #4a5568;
-        }            },
+section-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+        }        }            },
             options: {
-source_timestamp: 1729272594.821
                 maintainAspectRatio: false,
                 responsive: true,
                 scales: {
                     y: { beginAtZero: true, ticks: { color: '#d1d5db' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
                     x: { ticks: { color: '#d1d5db' }, grid: { display: false } }
+source_timestamp: 1729272828.167
                 },
                 plugins: { legend: { display: false } }
-            }
+section-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+        }        }
         });
     }
 
@@ -437,7 +446,7 @@ source_timestamp: 1729272594.821
         const brandSummary = data.reduce((acc, item) => {
             const brand = item.brand;
             acc[brand] = (acc[brand] || 0) + (item.quantity || 0);
-A           return acc;
+            return acc;
         }, {});
         
         const sortedBrands = Object.entries(brandSummary).sort(([,a], [,b]) => b - a).slice(0, 8);
@@ -464,60 +473,66 @@ A           return acc;
             },
             options: {
                 maintainAspectRatio: false,
-source_timestamp: 1729272594.821
                 responsive: true,
                 cutout: '60%',
                 plugins: {
                     legend: {
                         position: 'right',
+                        labels: { color: '#d1d5db', font: { size: 12 }, padding: 15 }
 sugestao-container {
             max-height: 150px;
             overflow-y: auto;
             background-color: #2d3748;
-source_timestamp: 1729272594.821
             border: 1px solid #4a5568;
-        }                        labels: { color: '#d1d5db', font: { size: 12 }, padding: 15 }
-                    }
+        }                  t}
                 }
             }
         });
     }
 
     function renderCollectorCards(data) {
-A         const collectorSummary = data.reduce((acc, item) => {
+        const collectorSummary = data.reduce((acc, item) => {
             const collector = item.collector;
             acc[collector] = (acc[collector] || 0) + 1;
             return acc;
         }, {});
         
         const sortedCollectors = Object.entries(collectorSummary).sort(([,a], [,b]) => b - a);
-source_timestamp: 1729272594.821
         const container = document.getElementById('collector-container');
         container.innerHTML = '';
-        
+  sugestao-container {
+            max-height: 150px;
+  source_timestamp: 1729272828.167
+            overflow-y: auto;
+            background-color: #2d3748;
+            border: 1px solid #4a5568;
+        }      
         sortedCollectors.forEach(([collectorId, count], index) => {
-source_timestamp: 1729272594.821
+source_timestamp: 1729272828.167
             const rank = index + 1;
             const rankColors = { 1: 'bg-yellow-500', 2: 'bg-gray-400', 3: 'bg-orange-500' };
             
             const card = document.createElement('div');
             card.className = 'bg-slate-800 rounded-lg p-4 hover:bg-slate-700 transition duration-300';
-            card.innerHTML = `
+section-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+        }            card.innerHTML = `
                 <div class="flex items-center justify-between">
-  source_timestamp: 1729272594.821
                     <div class="flex items-center">
                         <div class="w-8 h-8 ${rankColors[rank] || 'bg-slate-600'} rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
                             ${rank}
-                        </div>
+                    source_timestamp: 1729272828.167
+    </div>
                         <div>
-                D           <p class="font-semibold text-white">${collectorId}</p>
-                            <p class="text-sm text-gray-400">${count} registro${count !== 1 ? 's' : ''}</p>
+                            <p class="font-semibold text-white">${collectorId}</p>
+section-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+        }                            <p class="text-sm text-gray-400">${count} registro${count !== 1 ? 's' : ''}</p>
+source_timestamp: 1729272828.167
                         </div>
                     </div>
                 </div>
-section-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
-        }            `;
+            `;
             container.appendChild(card);
         });
     }
