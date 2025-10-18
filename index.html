@@ -44,15 +44,29 @@
         .section-card {
             background: linear-gradient(135deg, #1e293b, #334155);
         }
-        /* Estilo para botão de marca ativo */
         .brand-btn.active {
             background: linear-gradient(135deg, #3b82f6, #1d4ed8);
             color: white;
             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
+        #error-message {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 10000;
+            display: none; /* Começa escondido */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body class="text-gray-300">
+
+    <div id="error-message">Erro ao carregar dados. Verifique o console (F12).</div>
 
     <div id="loading-overlay">
         <div class="flex flex-col items-center">
@@ -146,132 +160,106 @@
     </div>
 
 <script>
-    // Configuração - USE SUA URL AQUI!
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbymVMzJMICCc-iSUjltT1lLm2Rt1auNk5koXImfhHmENhaC6ql8NQfFfTAJHVkt167Q/exec";
     
-    let rawData = []; // Armazena todos os dados brutos recebidos
+    let rawData = []; 
     let trendChartInstance = null;
     let brandChartInstance = null;
-    let activePeriodFilter = 'month'; // Filtro de período inicial
-    let activeBrandFilter = 'all';    // Filtro de marca inicial
+    let activePeriodFilter = 'month'; 
+    let activeBrandFilter = 'all';    
 
-    // Função JSONP para buscar dados SEM CORS
     function fetchDataWithJSONP() {
-        console.log("Iniciando fetchDataWithJSONP..."); // Debug
+        console.log("Iniciando fetchDataWithJSONP..."); 
         return new Promise((resolve, reject) => {
-            // 1. CRIE A VARIÁVEL 'script' PRIMEIRO
             const script = document.createElement('script');
-            
-            // 2. CRIE O NOME DO CALLBACK
             const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-            console.log("Callback:", callbackName); // Debug
+            console.log("Callback:", callbackName); 
             
-            // Variável de controle para timeout
             let timeoutId = null; 
 
-            // 3. AGORA DEFINA A FUNÇÃO DE CALLBACK
             window[callbackName] = function(data) {
-                console.log("Callback executado:", callbackName); // Debug
-                clearTimeout(timeoutId); // Limpa o timeout se a resposta chegar
+                console.log("Callback executado:", callbackName); 
+                clearTimeout(timeoutId); 
                 delete window[callbackName];
-                // Checa se o script ainda está no DOM antes de tentar remover
-                if (script.parentNode) {
-                    script.parentNode.removeChild(script);
-                }
+                if (script.parentNode) { script.parentNode.removeChild(script); }
                 
                 if (data && data.success) {
-                    console.log("Dados recebidos com sucesso via JSONP."); // Debug
+                    console.log("Dados recebidos com sucesso via JSONP."); 
                     resolve(data);
                 } else {
-                    console.error("Erro retornado pelo script:", data ? data.error : 'Resposta inválida'); // Debug
+                    console.error("Erro retornado pelo script:", data ? data.error : 'Resposta inválida'); 
                     reject(new Error(data.error || 'Erro desconhecido retornado pelo script'));
                 }
             };
             
-            // 4. CONFIGURE O 'onerror'
             script.onerror = (event) => {
-                console.error("Erro no carregamento do script JSONP:", event); // Debug
-                clearTimeout(timeoutId); // Limpa o timeout
+                console.error("Erro no carregamento do script JSONP:", event); 
+                clearTimeout(timeoutId); 
                 delete window[callbackName];
-                // Checa se o script ainda está no DOM antes de tentar remover
-                if (script.parentNode) {
-                    script.parentNode.removeChild(script);
-                }
+                if (script.parentNode) { script.parentNode.removeChild(script); }
                 reject(new Error('Falha ao carregar dados via JSONP. Verifique a URL do script, a conexão e o console do navegador.'));
             };
 
-            // 5. CONFIGURE A ORIGEM E ADICIONE AO BODY
             const url = `${SCRIPT_URL}?path=data&callback=${callbackName}&v=${new Date().getTime()}`;
-            console.log("Carregando URL JSONP:", url); // Debug
+            console.log("Carregando URL JSONP:", url); 
             script.src = url;
             document.body.appendChild(script);
 
-            // 6. Define um timeout (ex: 15 segundos)
             timeoutId = setTimeout(() => {
-                console.error("Timeout ao carregar dados JSONP."); // Debug
-                delete window[callbackName]; // Remove o callback
-                if (script.parentNode) { // Remove o script se ainda estiver lá
-                    script.parentNode.removeChild(script);
-                }
+                console.error("Timeout ao carregar dados JSONP."); 
+                delete window[callbackName]; 
+                if (script.parentNode) { script.parentNode.removeChild(script); }
                 reject(new Error("Timeout: A requisição de dados demorou muito para responder."));
-            }, 15000); // 15 segundos de timeout
+            }, 15000); 
         });
     }
 
-    // Funções de UI
     function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
     function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
     function showDashboard() { document.getElementById('dashboard-content').classList.remove('hidden'); }
+    function showErrorMessage(message) { 
+        console.warn("showError:", message); 
+        const errorDiv = document.getElementById('error-message');
+        errorDiv.textContent = message || "Erro ao carregar dados. Verifique o console (F12).";
+        errorDiv.style.display = 'block';
+        // Esconde a mensagem após alguns segundos
+        setTimeout(() => { errorDiv.style.display = 'none'; }, 8000); 
+    }
 
-    // Função principal para buscar e processar dados
+
     async function fetchRealData() {
-        console.log("Iniciando fetchRealData..."); // Debug
-        showLoading(); // Mostra o loading imediatamente
+        console.log("Iniciando fetchRealData..."); 
+        showLoading(); 
         try {
             const result = await fetchDataWithJSONP();
-            console.log("fetchDataWithJSONP concluído com sucesso."); // Debug
-            // Verifica se 'result.data' existe e é um array antes de processar
+            console.log("fetchDataWithJSONP concluído com sucesso."); 
             if (result && Array.isArray(result.data)) {
                  processData(result.data);
-                 // Esconde o loading APÓS processar os dados com sucesso
-                 hideLoading();
-                 showDashboard(); // Mostra o dashboard após processar
+                 hideLoading(); 
+                 showDashboard(); 
             } else {
-                console.error("Formato de dados inválido recebido:", result); // Debug
-                throw new Error("Dados recebidos inválidos ou vazios");
+                console.error("Formato de dados inválido recebido:", result); 
+                throw new Error("Dados recebidos inválidos ou vazios do script.");
             }
         } catch (error) {
-            console.error('Erro final ao carregar ou processar dados:', error); // Debug mais detalhado
-            showError(`Erro ao carregar dados: ${error.message}. Usando dados de exemplo.`);
-            // Esconde o loading ANTES de usar dados de exemplo
+            console.error('Erro final ao carregar ou processar dados:', error); 
+            // NÃO CHAMA MAIS useSampleData()
+            // Mantém a tela de loading visível OU mostra uma mensagem de erro
+            // hideLoading(); // Comente esta linha para manter o loading
+            showErrorMessage(`Falha ao carregar dados: ${error.message}. Verifique a conexão e o console (F12).`);
+            // Se quiser que o loading suma e mostre só o erro, descomente hideLoading()
             hideLoading(); 
-            useSampleData(); // Usa dados de exemplo em caso de erro
+            // O dashboard não será mostrado
         }
     }
 
-    // Dados de exemplo para fallback
-    function useSampleData() {
-        console.log("Usando useSampleData..."); // Debug
-        const sampleData = [
-            { timestamp: new Date().toISOString(), data: new Date().toISOString().split('T')[0], coletor: 'EXEMPLO_001', marca: 'Marca A', codigo: 'SKU_EX_1', quantidade: '15', localizacao: 'EX_A' },
-            { timestamp: new Date(Date.now() - 86400000).toISOString(), data: new Date(Date.now() - 86400000).toISOString().split('T')[0], coletor: 'EXEMPLO_002', marca: 'Marca B', codigo: 'SKU_EX_2', quantidade: '8', localizacao: 'EX_B' }
-        ];
-        processData(sampleData); // Processa os dados de exemplo
-        showDashboard(); // Mostra o dashboard com os dados de exemplo
-    }
+    // REMOVIDO: function useSampleData() { ... }
 
-    // Mostra erro no console
-    function showError(message) {
-        console.warn("showError:", message); // Debug
-        // Você pode adicionar um elemento na página para mostrar o erro se quiser
-    }
-
-    // Processar os dados recebidos (reais ou exemplo)
     function processData(data) {
-        console.log("Iniciando processData..."); // Debug
+        console.log("Iniciando processData..."); 
         if (!Array.isArray(data)) {
             console.error("Erro grave: 'data' não é um array em processData:", data);
-            data = []; // Usa um array vazio para evitar mais erros
+            throw new Error("Formato de dados interno inválido."); // Lança erro para o catch de fetchRealData
         }
         rawData = data.map(item => {
             let dateValue = item.data || item.timestamp || item.date;
@@ -282,7 +270,7 @@
             }
             return {
                 timestamp: dateObj,
-                date: dateObj.toISOString().split('T')[0], // Formato YYYY-MM-DD
+                date: dateObj.toISOString().split('T')[0], 
                 collector: item.coletor || item.collector || 'Desconhecido',
                 brand: item.marca || item.brand || 'Sem Marca',
                 sku: item.codigo || item.sku || 'N/A',
@@ -290,24 +278,20 @@
                 location: item.localizacao || item.location || 'N/A'
             };
         });
-        console.log("rawData processado:", rawData.length, "itens"); // Debug
-        initializeApp(); // Chama a inicialização após processar
+        console.log("rawData processado:", rawData.length, "itens"); 
+        initializeApp(); 
     }
 
-    // Função chamada ao clicar no filtro de período
     function filterByPeriod(period, buttonElement) {
-        console.log("Filtrando por período:", period); // Debug
+        console.log("Filtrando por período:", period); 
         activePeriodFilter = period;
-        // Remove 'active' de todos os botões de período
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-        // Adiciona 'active' apenas ao botão clicado
         if(buttonElement) buttonElement.classList.add('active');
-        updateDashboard(); // Atualiza o dashboard com o novo filtro
+        updateDashboard(); 
     }
 
-    // Aplica o filtro de período aos dados
     function applyPeriodFilter(data) {
-        if (!Array.isArray(data)) return []; // Segurança
+        if (!Array.isArray(data)) return []; 
         const today = new Date();
         today.setHours(0, 0, 0, 0); 
         let startDate;
@@ -324,31 +308,25 @@
                 startDate = new Date(today);
                 startDate.setMonth(today.getMonth() - 1);
                 return data.filter(item => item.timestamp >= startDate);
-            case 'all':
-            default:
-                return data;
+            case 'all': default: return data;
         }
     }
 
-    // Inicializa o dashboard (chamado após processData)
     function initializeApp() {
-        console.log("Iniciando initializeApp..."); // Debug
-        setupBrandFilters(); // Configura os filtros de marca primeiro
-        updateDashboard(); // Atualiza KPIs e gráficos com base nos dados e filtros
-        // A função showDashboard() é chamada em fetchRealData ou useSampleData
+        console.log("Iniciando initializeApp..."); 
+        setupBrandFilters(); 
+        updateDashboard(); 
     }
 
-    // Configura os botões de filtro de marca
     function setupBrandFilters() {
-        console.log("Configurando filtros de marca..."); // Debug
+        console.log("Configurando filtros de marca..."); 
         const uniqueBrands = rawData && Array.isArray(rawData) 
             ? [...new Set(rawData.map(item => item.brand).filter(Boolean))].sort()
             : [];
-        console.log("Marcas únicas:", uniqueBrands); // Debug
+        console.log("Marcas únicas:", uniqueBrands); 
         const brandContainer = document.getElementById('brand-filters-container');
-        brandContainer.innerHTML = ''; // Limpa antes de adicionar
+        brandContainer.innerHTML = ''; 
 
-        // Botão "Todas as Marcas"
         const allBtn = document.createElement('button');
         allBtn.textContent = 'Todas as Marcas';
         allBtn.dataset.brand = 'all';
@@ -356,7 +334,6 @@
         if (activeBrandFilter === 'all') allBtn.classList.add('active');
         brandContainer.appendChild(allBtn);
 
-        // Botões para cada marca
         uniqueBrands.forEach(brand => {
             const btn = document.createElement('button');
             btn.textContent = brand;
@@ -366,51 +343,46 @@
             brandContainer.appendChild(btn);
         });
 
-        // Adiciona o listener de clique APENAS UMA VEZ (se não foi adicionado antes)
-        // Para evitar múltiplos listeners, podemos remover antes de adicionar, ou usar uma flag
-        if (!brandContainer.dataset.listenerAdded) {
-             brandContainer.addEventListener('click', (e) => {
-                if (e.target.classList.contains('brand-btn')) {
-                    activeBrandFilter = e.target.dataset.brand;
-                    console.log("Filtrando por marca:", activeBrandFilter); // Debug
-                    // Atualiza a classe 'active' nos botões de marca
-                    document.querySelectorAll('#brand-filters-container .brand-btn').forEach(btn => {
-                        btn.classList.toggle('active', btn.dataset.brand === activeBrandFilter);
-                    });
-                    updateDashboard();
-                }
-            });
-            brandContainer.dataset.listenerAdded = 'true'; // Marca que o listener foi adicionado
-        }
+        // Adiciona listener de clique (removendo antes para evitar duplicidade)
+        const brandClickListener = (e) => {
+            if (e.target.classList.contains('brand-btn')) {
+                activeBrandFilter = e.target.dataset.brand;
+                console.log("Filtrando por marca:", activeBrandFilter); 
+                document.querySelectorAll('#brand-filters-container .brand-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.brand === activeBrandFilter);
+                });
+                updateDashboard();
+            }
+        };
+        // Remove listener antigo (se existir) e adiciona o novo
+        brandContainer.removeEventListener('click', brandContainer.__clickListener); 
+        brandContainer.addEventListener('click', brandClickListener);
+        brandContainer.__clickListener = brandClickListener; // Guarda referência para remover depois
+
     }
 
-    // Atualiza todos os elementos do dashboard (KPIs, gráficos)
     function updateDashboard() {
-        console.log("Atualizando dashboard..."); // Debug
+        console.log("Atualizando dashboard..."); 
         const dataToFilter = rawData && Array.isArray(rawData) ? rawData : [];
         let filteredData = applyPeriodFilter(dataToFilter);
         
         if (activeBrandFilter !== 'all') {
             filteredData = filteredData.filter(item => item.brand === activeBrandFilter);
         }
-        console.log("Dados filtrados:", filteredData.length, "itens"); // Debug
+        console.log("Dados filtrados:", filteredData.length, "itens"); 
 
-        // Atualiza KPIs
         document.getElementById('total-items').textContent = filteredData.reduce((sum, item) => sum + (item.quantity || 0), 0).toLocaleString('pt-BR');
         document.getElementById('total-entries').textContent = filteredData.length.toLocaleString('pt-BR');
         document.getElementById('unique-skus').textContent = new Set(filteredData.map(item => item.sku).filter(sku => sku && sku !== 'N/A')).size.toLocaleString('pt-BR');
         
-        // Renderiza gráficos e cards
         renderTrendChart(filteredData);
         renderBrandChart(filteredData);
         renderCollectorCards(filteredData);
         
-        // Atualiza timestamp
         document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
-        console.log("Dashboard atualizado."); // Debug
+        console.log("Dashboard atualizado."); 
     }
 
-    // Renderiza o gráfico de tendência
     function renderTrendChart(data) {
         const trendData = data.reduce((acc, item) => {
             const dateStr = item.date; 
@@ -432,7 +404,6 @@
         });
     }
 
-    // Renderiza o gráfico de distribuição por marca
     function renderBrandChart(data) {
         const brandSummary = data.reduce((acc, item) => {
             const brand = item.brand || 'Sem Marca'; 
@@ -454,11 +425,10 @@
         });
     }
 
-    // Renderiza os cards de atividade por coletor
     function renderCollectorCards(data) {
         const collectorSummary = data.reduce((acc, item) => {
             const collector = item.collector || 'Desconhecido'; 
-            acc[collector] = (acc[collector] || 0) + 1; // Contagem de registros
+            acc[collector] = (acc[collector] || 0) + 1; 
             return acc;
         }, {});
         
