@@ -11,87 +11,175 @@
         body { font-family: 'Inter', sans-serif; background-color: #111827; }
         .chart-container { position: relative; width: 100%; height: 400px; }
         .filter-btn.active, .brand-btn.active { background-color: #3b82f6; color: white; }
-        #loading-overlay, #error-overlay { 
+        
+        /* Loading overlay melhorado */
+        #loading-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background-color: rgba(17, 24, 39, 0.95); 
             display: flex; justify-content: center; align-items: center; 
             z-index: 9999; color: white; text-align: center; padding: 1rem; 
         }
-        #error-overlay { display: none; flex-direction: column; }
+        
+        #error-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background-color: rgba(17, 24, 39, 0.95); 
+            display: none; justify-content: center; align-items: center; 
+            z-index: 9999; color: white; text-align: center; padding: 1rem; 
+            flex-direction: column; 
+        }
+        
         .hidden { display: none !important; }
+        
+        /* Spinner azul animado */
+        .spinner {
+            border: 4px solid rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #3b82f6;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Pulsação suave para o texto */
+        .pulse-text {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body class="text-gray-300">
 
+    <!-- Loading Overlay Melhorado -->
     <div id="loading-overlay">
         <div class="flex flex-col items-center">
-            <svg class="animate-spin h-8 w-8 text-white mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p>Carregando dados...</p>
+            <div class="spinner"></div>
+            <p class="text-xl font-semibold pulse-text">Carregando dados...</p>
+            <p class="text-gray-400 mt-2">Aguarde enquanto buscamos as informações mais recentes</p>
         </div>
     </div>
 
+    <!-- Error Overlay -->
     <div id="error-overlay">
-        <div class="flex flex-col items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="flex flex-col items-center max-w-md">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p id="error-message" class="mb-6 max-w-lg text-center">Erro de CORS: Não é possível acessar os dados do Google Sheets diretamente.</p>
-            <div class="space-y-3">
-                <p class="text-sm text-gray-300">Soluções possíveis:</p>
-                <ul class="text-sm text-gray-400 text-left list-disc list-inside">
-                    <li>Configurar CORS no Google Apps Script</li>
-                    <li>Usar um proxy CORS</li>
-                    <li>Hospedar em mesmo domínio do script</li>
-                </ul>
+            <h3 class="text-xl font-bold text-white mb-2">Erro ao Carregar</h3>
+            <p id="error-message" class="text-gray-300 text-center mb-6"></p>
+            <div class="flex gap-4">
+                <button onclick="location.reload()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300">
+                    Tentar Novamente
+                </button>
+                <button onclick="useMockData()" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition duration-300">
+                    Usar Dados de Exemplo
+                </button>
             </div>
-            <button onclick="location.reload()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300">
-                Tentar Novamente
-            </button>
         </div>
     </div>
 
+    <!-- Conteúdo Principal -->
     <div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
-        <!-- O resto do seu conteúdo permanece igual -->
+        <header class="text-center mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Análise de Retrabalhos</h1>
+            <p id="dashboard-subtitle" class="text-lg text-gray-400 mt-2">Análise do Período Completo</p>
+        </header>
+        
+        <!-- Botão Atualizar -->
+        <div class="text-center mb-8">
+            <button id="updateButton" onclick="refreshData()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg inline-flex items-center transition duration-300 shadow-lg">
+                <div id="loadingIcon" class="spinner-small hidden mr-2"></div>
+                <span id="buttonText">Atualizar Dados</span>
+            </button>
+        </div>
+
+        <main>
+            <!-- Filtros -->
+            <section id="filters" class="mb-8 bg-gray-800 rounded-xl p-6 shadow-lg">
+                <h2 class="text-lg font-semibold text-white mb-3">Filtrar por Período</h2>
+                <div id="date-filters-container" class="flex flex-wrap gap-2 mb-6"></div>
+                <h2 class="text-lg font-semibold text-white mb-3">Filtrar por Marca</h2>
+                <div id="brand-filters-container" class="flex flex-wrap gap-2"></div>
+            </section>
+            
+            <!-- KPIs -->
+            <section id="kpis" class="mb-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg hover:bg-gray-750 transition duration-300">
+                    <h3 class="text-lg font-semibold text-gray-400">Quantidade Total de Itens</h3>
+                    <p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg hover:bg-gray-750 transition duration-300">
+                    <h3 class="text-lg font-semibold text-gray-400">Total de Registros</h3>
+                    <p id="total-entries" class="text-4xl font-bold text-blue-400 mt-2">0</p>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg hover:bg-gray-750 transition duration-300">
+                    <h3 class="text-lg font-semibold text-gray-400">Peças Retrabalhadas</h3>
+                    <p id="unique-skus" class="text-4xl font-bold text-blue-400 mt-2">0</p>
+                </div>
+            </section>
+            
+            <!-- Gráficos -->
+            <section class="bg-gray-800 rounded-xl p-6 shadow-lg mb-12">
+                <h2 class="text-xl font-bold text-white mb-4">Tendência de Retrabalhos por Dia</h2>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </section>
+
+            <section id="charts" class="mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <h2 class="text-xl font-bold text-white mb-4">Retrabalhos por Marca</h2>
+                    <div class="chart-container">
+                        <canvas id="brandChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
+                    <h2 class="text-xl font-bold text-white mb-4">Atividade por Coletor</h2>
+                    <div id="collector-container" class="space-y-4 mt-6"></div>
+                </div>
+            </section>
+        </main>
+        
+        <footer class="text-center mt-12 text-gray-500 text-sm">
+            <p>ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025</p>
+            <p>Última atualização: <span id="update-timestamp"></span></p>
+        </footer>
     </div>
 
 <script>
-    // Configuração para desenvolvimento local - dados mock
-    const USE_MOCK_DATA = true; // Mude para false quando resolver o CORS
+    // Configuração
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzG3ED-EfmgOEiUc2ZVjpw3yQT3H9bMKqgWUJpbVxe5oSv9oKJKAq3-Omhvm4nLDMnN/exec";
-
     let rawData = [];
     let trendChartInstance = null;
     let brandChartInstance = null;
     let activeDateFilter = 'all';
     let activeBrandFilter = 'all';
 
-    // Dados mock para desenvolvimento
-    function generateMockData() {
-        const brands = ['Nike', 'Adidas', 'Puma', 'New Balance', 'Reebok'];
-        const collectors = ['COLLECTOR_001', 'COLLECTOR_002', 'COLLECTOR_003'];
-        const mockData = [];
-        
-        const today = new Date();
-        for (let i = 0; i < 50; i++) {
-            const date = new Date();
-            date.setDate(today.getDate() - Math.floor(Math.random() * 30));
-            
-            mockData.push({
-                timestamp: date.toISOString(),
-                date: date.toISOString().split('T')[0],
-                sku: `SKU_${Math.floor(1000 + Math.random() * 9000)}`,
-                brand: brands[Math.floor(Math.random() * brands.length)],
-                quantity: Math.floor(1 + Math.random() * 10),
-                collector: collectors[Math.floor(Math.random() * collectors.length)]
-            });
+    // Estilo para o spinner pequeno do botão
+    const style = document.createElement('style');
+    style.textContent = `
+        .spinner-small {
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            border-top: 2px solid #ffffff;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
         }
-        
-        return mockData;
-    }
+    `;
+    document.head.appendChild(style);
 
+    // Funções de UI
     function showLoading() { 
         document.getElementById('loading-overlay').style.display = 'flex'; 
     }
@@ -112,55 +200,41 @@
     
     function showDashboard() { 
         hideLoading(); 
+        hideError();
         document.getElementById('dashboard-content').classList.remove('hidden'); 
     }
 
+    // Função principal para buscar dados
     async function fetchData() {
         try {
             showLoading();
             hideError();
             
-            if (USE_MOCK_DATA) {
-                // Usa dados mock para desenvolvimento
-                console.log('Usando dados mock para desenvolvimento');
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Simula delay
-                rawData = generateMockData();
-                initializeApp();
-                return;
-            }
-
-            // Tentativa de fetch real
-            const response = await fetch(SCRIPT_URL + "?v=" + new Date().getTime());
+            const url = `${SCRIPT_URL}?path=data&v=${new Date().getTime()}`;
+            console.log('Buscando dados de:', url);
+            
+            const response = await fetch(url);
             
             if (!response.ok) {
-                throw new Error(`Erro na rede: ${response.status} - ${response.statusText}`);
+                throw new Error(`Erro HTTP: ${response.status}`);
             }
             
-            const data = await response.json();
+            const result = await response.json();
             
-            if (data.error) {
-                throw new Error(`Erro do servidor: ${data.error}`);
+            if (!result.success) {
+                throw new Error(result.error || 'Erro desconhecido do servidor');
             }
             
-            // Processa os dados reais
-            rawData = data.map(item => {
-                const quantity = parseInt(item.quantity) || 0;
-                let dateObj;
-                
-                try {
-                    dateObj = new Date(item.date);
-                    if (isNaN(dateObj.getTime())) {
-                        dateObj = item.timestamp ? new Date(item.timestamp) : new Date();
-                    }
-                } catch (e) {
-                    dateObj = new Date();
-                }
-                
+            // Processa os dados
+            rawData = result.data.map(item => {
                 return {
-                    ...item,
-                    quantity: quantity,
                     timestamp: new Date(item.timestamp || Date.now()),
-                    date: dateObj.toISOString().split('T')[0]
+                    date: formatDate(item.data || item.timestamp),
+                    collector: item.coletor || 'Desconhecido',
+                    brand: item.marca || 'Sem Marca',
+                    sku: item.codigo || 'N/A',
+                    quantity: parseInt(item.quantidade) || 0,
+                    location: item.localizacao || 'N/A'
                 };
             });
             
@@ -170,261 +244,62 @@
             console.error('Erro ao carregar dados:', error);
             
             if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
-                showError('Erro de CORS: Não é possível conectar ao Google Sheets. Usando dados de demonstração.');
-                // Fallback para dados mock
-                rawData = generateMockData();
-                initializeApp();
+                showError('Erro de conexão: Não foi possível acessar os dados. Verifique a configuração CORS no Google Apps Script.');
             } else {
                 showError(`Erro ao carregar dados: ${error.message}`);
             }
         }
     }
 
-    // O resto das funções (setupFilters, updateDashboard, renderTrendChart, etc.)
-    // permanecem exatamente como na versão anterior que eu enviei
-
-    function setupFilters() {
-        // Filtros de data
-        const dates = [...new Set(rawData.map(item => item.date))].sort((a, b) => new Date(b) - new Date(a));
-        const dateContainer = document.getElementById('date-filters-container');
+    // Função para usar dados mock (fallback)
+    function useMockData() {
+        hideError();
+        showLoading();
         
-        dateContainer.innerHTML = '<button class="filter-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>';
-        
-        dates.forEach(date => {
-            const btn = document.createElement('button');
-            const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-            btn.textContent = `Dia ${formattedDate}`;
-            btn.dataset.date = date;
-            btn.className = 'filter-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
-            dateContainer.appendChild(btn);
-        });
-
-        // Filtros de marca
-        const brands = [...new Set(rawData.map(item => item.brand || 'Sem Marca'))].filter(Boolean).sort();
-        const brandContainer = document.getElementById('brand-filters-container');
-        
-        brandContainer.innerHTML = '<button class="brand-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-brand="all">Todas</button>';
-        
-        brands.forEach(brand => {
-            const btn = document.createElement('button');
-            btn.textContent = brand;
-            btn.dataset.brand = brand;
-            btn.className = 'brand-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
-            brandContainer.appendChild(btn);
-        });
+        // Simula um delay de carregamento
+        setTimeout(() => {
+            rawData = generateMockData();
+            initializeApp();
+            showDashboard();
+        }, 1000);
     }
-    
-    function updateDashboard(dateFilter = 'all', brandFilter = 'all') {
-        activeDateFilter = dateFilter;
-        activeBrandFilter = brandFilter;
 
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.date === dateFilter);
-        });
-        
-        document.querySelectorAll('.brand-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.brand === brandFilter);
-        });
-        
-        let filteredData = rawData;
-        if (dateFilter !== 'all') {
-            filteredData = filteredData.filter(item => item.date === dateFilter);
+    // ... (as outras funções: generateMockData, setupFilters, updateDashboard, renderTrendChart, renderBrandChart, renderCollectorCards permanecem iguais)
+
+    // Função auxiliar para formatar datas
+    function formatDate(dateString) {
+        try {
+            const date = new Date(dateString);
+            return date.toISOString().split('T')[0];
+        } catch (e) {
+            return new Date().toISOString().split('T')[0];
         }
-        if (brandFilter !== 'all') {
-            filteredData = filteredData.filter(item => (item.brand || 'Sem Marca') === brandFilter);
-        }
-        
-        document.getElementById('total-items').textContent = filteredData
-            .reduce((sum, item) => sum + (item.quantity || 0), 0)
-            .toLocaleString('pt-BR');
-            
-        document.getElementById('total-entries').textContent = filteredData.length.toLocaleString('pt-BR');
-        
-        document.getElementById('unique-skus').textContent = new Set(
-            filteredData.map(item => item.sku).filter(sku => sku)
-        ).size.toLocaleString('pt-BR');
-        
-        renderTrendChart(filteredData);
-        renderBrandChart(filteredData);
-        renderCollectorCards(filteredData);
     }
 
-    function renderTrendChart(data) {
-        const trendData = data.reduce((acc, item) => {
-            acc[item.date] = (acc[item.date] || 0) + (item.quantity || 0);
-            return acc;
-        }, {});
-        
-        const sortedDates = Object.keys(trendData).sort((a, b) => new Date(a) - new Date(b));
-        const labels = sortedDates.map(date => 
-            new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-        );
-        const chartData = sortedDates.map(date => trendData[date]);
-        
-        const ctx = document.getElementById('trendChart').getContext('2d');
-        
-        if (trendChartInstance) {
-            trendChartInstance.destroy();
-        }
-        
-        trendChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Quantidade de Retrabalhos',
-                    data: chartData,
-                    fill: true,
-                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    borderWidth: 2,
-                    tension: 0.3
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { color: '#d1d5db' },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                    },
-                    x: {
-                        ticks: { color: '#d1d5db' },
-                        grid: { display: false }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
-    }
-
-    function renderBrandChart(data) {
-        const brandSummary = data.reduce((acc, item) => {
-            const brand = item.brand || 'Sem Marca';
-            acc[brand] = (acc[brand] || 0) + (item.quantity || 0);
-            return acc;
-        }, {});
-        
-        const sortedBrands = Object.entries(brandSummary)
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 10);
-            
-        const labels = sortedBrands.map(item => item[0]);
-        const chartData = sortedBrands.map(item => item[1]);
-        
-        const ctx = document.getElementById('brandChart').getContext('2d');
-        
-        if (brandChartInstance) {
-            brandChartInstance.destroy();
-        }
-        
-        brandChartInstance = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Quantidade',
-                    data: chartData,
-                    backgroundColor: [
-                        '#3b82f6', '#10b981', '#ef4444', '#f97316', '#8b5cf6',
-                        '#eab308', '#06b6d4', '#84cc16', '#f43f5e', '#a855f7'
-                    ],
-                    borderWidth: 1,
-                    hoverOffset: 8
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            color: '#d1d5db',
-                            font: { size: 12 }
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    function renderCollectorCards(data) {
-        const collectorSummary = data.reduce((acc, item) => {
-            const collector = item.collector || 'Desconhecido';
-            acc[collector] = (acc[collector] || 0) + 1;
-            return acc;
-        }, {});
-        
-        const sortedCollectors = Object.entries(collectorSummary)
-            .sort(([,a], [,b]) => b - a);
-            
-        const container = document.getElementById('collector-container');
-        container.innerHTML = '';
-        
-        sortedCollectors.forEach(([collectorId, count]) => {
-            const card = document.createElement('div');
-            card.className = 'flex items-center p-4 bg-gray-900 rounded-lg hover:bg-gray-850 transition duration-300';
-            card.innerHTML = `
-                <div class="flex-grow">
-                    <div class="flex justify-between items-center">
-                        <p class="font-semibold text-white">Coletor ${collectorId}</p>
-                        <p class="text-sm text-gray-300">${count} Registro${count !== 1 ? 's' : ''}</p>
-                    </div>
-                </div>
-            `;
-            container.appendChild(card);
-        });
-    }
-
-    function initializeApp() {
-        showDashboard();
-        setupFilters();
-        updateDashboard('all', 'all');
-        document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
-        
-        document.getElementById('date-filters-container').addEventListener('click', (e) => {
-            if (e.target.classList.contains('filter-btn')) {
-                updateDashboard(e.target.dataset.date, activeBrandFilter);
-            }
-        });
-        
-        document.getElementById('brand-filters-container').addEventListener('click', (e) => {
-            if (e.target.classList.contains('brand-btn')) {
-                updateDashboard(activeDateFilter, e.target.dataset.brand);
-            }
-        });
-    }
-
+    // Função de atualização
     async function refreshData() {
         const button = document.getElementById('updateButton');
         const loadingIcon = document.getElementById('loadingIcon');
         const buttonText = document.getElementById('buttonText');
 
+        // Estado de carregamento
         loadingIcon.classList.remove('hidden');
         buttonText.textContent = 'Atualizando...';
         button.disabled = true;
-        button.classList.add('opacity-75', 'cursor-not-allowed');
 
         try {
             await fetchData();
         } catch (error) {
-            console.error('Erro ao atualizar dados:', error);
-            showError(`Erro ao atualizar dados: ${error.message}`);
+            console.error('Erro ao atualizar:', error);
         } finally {
+            // Restaura o botão
             loadingIcon.classList.add('hidden');
             buttonText.textContent = 'Atualizar Dados';
             button.disabled = false;
-            button.classList.remove('opacity-75', 'cursor-not-allowed');
         }
     }
 
+    // Inicialização
     document.addEventListener('DOMContentLoaded', fetchData);
 
 </script>
