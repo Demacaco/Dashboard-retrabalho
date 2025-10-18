@@ -3,29 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Retrabalhos</title>
+    <title>Painel Gestão de Retrabalhos</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #111827; }
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; }
         .chart-container { position: relative; width: 100%; height: 400px; }
-        .filter-btn.active, .brand-btn.active { background-color: #3b82f6; color: white; }
+        .filter-btn.active { 
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
         
         #loading-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background-color: rgba(17, 24, 39, 0.95); 
+            background: linear-gradient(135deg, #0f172a, #1e293b);
             display: flex; justify-content: center; align-items: center; 
             z-index: 9999; color: white; text-align: center; padding: 1rem; 
-        }
-        
-        #error-overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background-color: rgba(17, 24, 39, 0.95); 
-            display: none; justify-content: center; align-items: center; 
-            z-index: 9999; color: white; text-align: center; padding: 1rem; 
-            flex-direction: column; 
         }
         
         .hidden { display: none !important; }
@@ -44,6 +40,23 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .kpi-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border-left: 4px solid #3b82f6;
+            transition: all 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .section-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border: 1px solid #374151;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body class="text-gray-300">
@@ -51,96 +64,130 @@
     <div id="loading-overlay">
         <div class="flex flex-col items-center">
             <div class="spinner"></div>
-            <p class="text-xl font-semibold">Carregando dados...</p>
-        </div>
-    </div>
-
-    <div id="error-overlay">
-        <div class="flex flex-col items-center max-w-md">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 class="text-xl font-bold text-white mb-2">Erro ao Carregar</h3>
-            <p id="error-message" class="text-gray-300 text-center mb-6">
-                Não foi possível conectar ao servidor de dados.
-            </p>
-            <div class="flex gap-4 flex-wrap justify-center">
-                <button onclick="useMockData()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition duration-300">
-                    🚀 Usar Dados de Exemplo
-                </button>
-                <button onclick="tryDirectConnection()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300">
-                    🔄 Tentar Conexão Direta
-                </button>
-            </div>
-            <p class="text-sm text-gray-400 mt-4 text-center">
-                Dica: Configure o CORS no Google Apps Script para acesso direto
-            </p>
+            <p class="text-xl font-semibold">Carregando dados em tempo real...</p>
+            <p class="text-gray-400 mt-2">Conectando ao sistema de gestão</p>
         </div>
     </div>
 
     <div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
-        <header class="text-center mb-12">
-            <h1 class="text-3xl md:text-4xl font-bold text-white">Dashboard de Retrabalhos</h1>
-            <p id="dashboard-subtitle" class="text-lg text-gray-400 mt-2">
-                <span id="data-source-badge" class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">Dados em Tempo Real</span>
+        <!-- Cabeçalho -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
+                PAINEL GESTÃO DE RETRABALHOS
+            </h1>
+            <p class="text-lg text-gray-400">
+                Sistema integrado de monitoramento e controle de retrabalhos
             </p>
         </header>
-        
-        <div class="text-center mb-8">
-            <button id="updateButton" onclick="refreshData()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg inline-flex items-center transition duration-300 shadow-lg">
-                <div id="loadingIcon" class="spinner-small hidden mr-2"></div>
-                <span id="buttonText">Atualizar Dados</span>
-            </button>
-            <p class="text-sm text-gray-400 mt-2" id="data-source-info">Fonte: Google Sheets</p>
-        </div>
 
-        <main>
-            <section id="filters" class="mb-8 bg-gray-800 rounded-xl p-6 shadow-lg">
-                <h2 class="text-lg font-semibold text-white mb-3">Filtrar por Período</h2>
-                <div id="date-filters-container" class="flex flex-wrap gap-2 mb-6"></div>
-                <h2 class="text-lg font-semibold text-white mb-3">Filtrar por Marca</h2>
-                <div id="brand-filters-container" class="flex flex-wrap gap-2"></div>
-            </section>
+        <!-- Filtros de Período -->
+        <section class="mb-8 section-card rounded-xl p-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                <h2 class="text-xl font-bold text-white mb-4 md:mb-0">Filtrar por Período</h2>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="filterByPeriod('today')" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300">
+                        📅 Hoje
+                    </button>
+                    <button onclick="filterByPeriod('week')" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300">
+                        📊 Última Semana
+                    </button>
+                    <button onclick="filterByPeriod('month')" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300 active">
+                        📈 Último Mês
+                    </button>
+                    <button onclick="filterByPeriod('all')" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300">
+                        🗓️ Período Completo
+                    </button>
+                </div>
+            </div>
             
-            <section id="kpis" class="mb-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg hover:bg-gray-750 transition duration-300">
-                    <h3 class="text-lg font-semibold text-gray-400">Quantidade Total</h3>
-                    <p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p>
+            <!-- Filtros de Marca -->
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold text-white mb-3">Filtrar por Marca</h3>
+                <div id="brand-filters-container" class="flex flex-wrap gap-2">
+                    <!-- Brands serão carregadas dinamicamente -->
                 </div>
-                <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg hover:bg-gray-750 transition duration-300">
-                    <h3 class="text-lg font-semibold text-gray-400">Total de Registros</h3>
-                    <p id="total-entries" class="text-4xl font-bold text-blue-400 mt-2">0</p>
+            </div>
+        </section>
+
+        <!-- KPIs -->
+        <section id="kpis" class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="kpi-card rounded-xl p-6 text-center">
+                <div class="flex items-center justify-center mb-3">
+                    <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                        <span class="text-white font-bold">📦</span>
+                    </div>
                 </div>
-                <div class="bg-gray-800 rounded-xl p-6 text-center shadow-lg hover:bg-gray-750 transition duration-300">
-                    <h3 class="text-lg font-semibold text-gray-400">Peças Únicas</h3>
-                    <p id="unique-skus" class="text-4xl font-bold text-blue-400 mt-2">0</p>
-                </div>
-            </section>
+                <h3 class="text-lg font-semibold text-gray-400">Total de Itens</h3>
+                <p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p>
+                <p class="text-sm text-gray-500 mt-1">Quantidade total retrabalhada</p>
+            </div>
             
-            <section class="bg-gray-800 rounded-xl p-6 shadow-lg mb-12">
-                <h2 class="text-xl font-bold text-white mb-4">Tendência de Retrabalhos por Dia</h2>
+            <div class="kpi-card rounded-xl p-6 text-center">
+                <div class="flex items-center justify-center mb-3">
+                    <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                        <span class="text-white font-bold">📋</span>
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-400">Registros</h3>
+                <p id="total-entries" class="text-4xl font-bold text-green-400 mt-2">0</p>
+                <p class="text-sm text-gray-500 mt-1">Total de registros de retrabalho</p>
+            </div>
+            
+            <div class="kpi-card rounded-xl p-6 text-center">
+                <div class="flex items-center justify-center mb-3">
+                    <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
+                        <span class="text-white font-bold">🔧</span>
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-400">Peças Únicas</h3>
+                <p id="unique-skus" class="text-4xl font-bold text-purple-400 mt-2">0</p>
+                <p class="text-sm text-gray-500 mt-1">SKUs diferentes retrabalhados</p>
+            </div>
+        </section>
+
+        <!-- Gráficos Principais -->
+        <section class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Tendência -->
+            <div class="section-card rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-white">Tendência de Retrabalhos</h2>
+                    <span class="text-sm text-gray-400 bg-slate-700 px-2 py-1 rounded">Últimos 30 dias</span>
+                </div>
                 <div class="chart-container">
                     <canvas id="trendChart"></canvas>
                 </div>
-            </section>
+            </div>
 
-            <section id="charts" class="mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
-                    <h2 class="text-xl font-bold text-white mb-4">Retrabalhos por Marca</h2>
-                    <div class="chart-container">
-                        <canvas id="brandChart"></canvas>
-                    </div>
+            <!-- Marcas -->
+            <div class="section-card rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-white">Distribuição por Marca</h2>
+                    <span class="text-sm text-gray-400 bg-slate-700 px-2 py-1 rounded">Volume total</span>
                 </div>
-                <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
-                    <h2 class="text-xl font-bold text-white mb-4">Atividade por Coletor</h2>
-                    <div id="collector-container" class="space-y-4 mt-6"></div>
+                <div class="chart-container">
+                    <canvas id="brandChart"></canvas>
                 </div>
-            </section>
-        </main>
-        
-        <footer class="text-center mt-12 text-gray-500 text-sm">
-            <p>ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025</p>
-            <p>Última atualização: <span id="update-timestamp"></span></p>
+            </div>
+        </section>
+
+        <!-- Atividade por Coletor -->
+        <section class="mb-8">
+            <div class="section-card rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-white">Atividade por Coletor</h2>
+                    <span class="text-sm text-gray-400 bg-slate-700 px-2 py-1 rounded">Ranking de produtividade</span>
+                </div>
+                <div id="collector-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Coletores serão carregados dinamicamente -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center mt-12 text-gray-500 text-sm border-t border-gray-800 pt-6">
+            <p class="font-semibold">ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025</p>
+            <p>Última atualização: <span id="update-timestamp" class="text-blue-400"></span></p>
+            <p class="mt-2 text-xs text-gray-600">Dados em tempo real - Sistema Integrado</p>
         </footer>
     </div>
 
@@ -150,11 +197,10 @@
     let rawData = [];
     let trendChartInstance = null;
     let brandChartInstance = null;
-    let activeDateFilter = 'all';
+    let activePeriodFilter = 'month'; // Padrão: último mês
     let activeBrandFilter = 'all';
-    let usingMockData = false;
 
-    // Adicionar estilo para spinner pequeno
+    // Estilo para spinner
     const style = document.createElement('style');
     style.textContent = `
         .spinner-small {
@@ -177,32 +223,31 @@
         document.getElementById('loading-overlay').style.display = 'none'; 
     }
     
-    function showError(message) { 
-        hideLoading(); 
-        if (message) {
-            document.getElementById('error-message').textContent = message;
-        }
-        document.getElementById('error-overlay').style.display = 'flex'; 
-    }
-    
-    function hideError() { 
-        document.getElementById('error-overlay').style.display = 'none'; 
-    }
-    
     function showDashboard() { 
-        hideLoading(); 
-        hideError();
+        hideLoading();
         document.getElementById('dashboard-content').classList.remove('hidden'); 
     }
 
-    // Tentativa de conexão direta (para quando o CORS estiver configurado)
-    async function tryDirectConnection() {
+    // Filtro por período
+    function filterByPeriod(period) {
+        activePeriodFilter = period;
+        
+        // Atualiza botões ativos
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        updateDashboard();
+    }
+
+    // Buscar dados reais
+    async function fetchRealData() {
         try {
             showLoading();
-            hideError();
             
             const url = `${SCRIPT_URL}?path=data&v=${new Date().getTime()}`;
-            console.log('Tentando conexão direta:', url);
+            console.log('Buscando dados reais:', url);
             
             const response = await fetch(url);
             
@@ -217,159 +262,113 @@
             }
 
             processData(result.data);
-            updateDataSourceInfo('Google Sheets (Conexão Direta)', 'bg-green-500');
-            usingMockData = false;
             
         } catch (error) {
-            console.error('Erro na conexão direta:', error);
-            showError('Conexão direta falhou. Configure o CORS no Google Apps Script.');
+            console.error('Erro ao carregar dados:', error);
+            // Em caso de erro, tenta novamente após 3 segundos
+            setTimeout(fetchRealData, 3000);
         }
     }
 
-    // Função para usar dados mock (solução principal)
-    function useMockData() {
-        showLoading();
-        hideError();
-        
-        // Simula um delay de carregamento
-        setTimeout(() => {
-            const mockData = generateMockData();
-            processData(mockData);
-            updateDataSourceInfo('Dados de Demonstração', 'bg-yellow-500');
-            usingMockData = true;
-        }, 800);
-    }
-
-    // Atualizar informações da fonte de dados
-    function updateDataSourceInfo(text, badgeColor) {
-        document.getElementById('data-source-info').textContent = `Fonte: ${text}`;
-        const badge = document.getElementById('data-source-badge');
-        badge.textContent = text;
-        badge.className = `${badgeColor} text-white px-3 py-1 rounded-full text-sm`;
-    }
-
-    // Gerar dados mock realistas
-    function generateMockData() {
-        const brands = ['Nike', 'Adidas', 'Puma', 'New Balance', 'Reebok', 'Mizuno', 'Asics', 'Under Armour'];
-        const collectors = ['COLETOR_001', 'COLETOR_002', 'COLETOR_003', 'COLETOR_004', 'COLETOR_005'];
-        const locations = ['SETOR_A', 'SETOR_B', 'SETOR_C', 'SETOR_D'];
-        
-        const mockData = [];
-        const today = new Date();
-        
-        // Gera dados para os últimos 45 dias
-        for (let i = 0; i < 120; i++) {
-            const date = new Date(today);
-            date.setDate(today.getDate() - Math.floor(Math.random() * 45));
-            
-            const brand = brands[Math.floor(Math.random() * brands.length)];
-            const quantity = Math.floor(1 + Math.random() * 12);
-            
-            mockData.push({
-                timestamp: date.toISOString(),
-                data: date.toISOString().split('T')[0],
-                coletor: collectors[Math.floor(Math.random() * collectors.length)],
-                marca: brand,
-                codigo: `SKU_${brand.toUpperCase().substring(0, 3)}_${Math.floor(1000 + Math.random() * 9000)}`,
-                quantidade: quantity,
-                localizacao: locations[Math.floor(Math.random() * locations.length)]
-            });
-        }
-        
-        return mockData;
-    }
-
-    // Processar dados (comum para mock e real)
+    // Processar dados
     function processData(data) {
-        try {
-            rawData = data.map(item => {
-                // Tenta encontrar a data em diferentes campos
-                let dateValue = item.data || item.timestamp || item.date;
-                let dateObj;
-                
-                try {
-                    dateObj = new Date(dateValue);
-                    if (isNaN(dateObj.getTime())) {
-                        dateObj = new Date();
-                    }
-                } catch (e) {
+        rawData = data.map(item => {
+            // Encontra a data correta
+            let dateValue = item.data || item.timestamp || item.date;
+            let dateObj;
+            
+            try {
+                dateObj = new Date(dateValue);
+                if (isNaN(dateObj.getTime())) {
                     dateObj = new Date();
                 }
+            } catch (e) {
+                dateObj = new Date();
+            }
 
-                return {
-                    timestamp: dateObj,
-                    date: dateObj.toISOString().split('T')[0],
-                    collector: item.coletor || item.collector || 'Desconhecido',
-                    brand: item.marca || item.brand || 'Sem Marca',
-                    sku: item.codigo || item.sku || 'N/A',
-                    quantity: parseInt(item.quantidade || item.quantity) || 0,
-                    location: item.localizacao || item.location || 'N/A'
-                };
-            });
+            return {
+                timestamp: dateObj,
+                date: dateObj.toISOString().split('T')[0],
+                collector: item.coletor || item.collector || 'Desconhecido',
+                brand: item.marca || item.brand || 'Sem Marca',
+                sku: item.codigo || item.sku || 'N/A',
+                quantity: parseInt(item.quantidade || item.quantity) || 0,
+                location: item.localizacao || item.location || 'N/A'
+            };
+        });
 
-            initializeApp();
-            
-        } catch (error) {
-            console.error('Erro ao processar dados:', error);
-            showError('Erro ao processar os dados recebidos.');
+        initializeApp();
+    }
+
+    // Aplicar filtro de período
+    function applyPeriodFilter(data) {
+        const today = new Date();
+        let startDate;
+
+        switch(activePeriodFilter) {
+            case 'today':
+                startDate = new Date(today);
+                startDate.setHours(0, 0, 0, 0);
+                return data.filter(item => item.timestamp >= startDate);
+                
+            case 'week':
+                startDate = new Date(today);
+                startDate.setDate(today.getDate() - 7);
+                return data.filter(item => item.timestamp >= startDate);
+                
+            case 'month':
+                startDate = new Date(today);
+                startDate.setMonth(today.getMonth() - 1);
+                return data.filter(item => item.timestamp >= startDate);
+                
+            case 'all':
+            default:
+                return data;
         }
     }
 
-    // =============================================
-    // FUNÇÕES DO DASHBOARD (já testadas e funcionando)
-    // =============================================
-
-    function setupFilters() {
-        // Filtros de data
-        const dates = [...new Set(rawData.map(item => item.date))].sort((a, b) => new Date(b) - new Date(a));
-        const dateContainer = document.getElementById('date-filters-container');
+    // Inicializar aplicação
+    function initializeApp() {
+        showDashboard();
+        setupBrandFilters();
+        updateDashboard();
+        document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
         
-        dateContainer.innerHTML = '<button class="filter-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-date="all">Ver Tudo</button>';
-        
-        dates.forEach(date => {
-            const btn = document.createElement('button');
-            const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-            btn.textContent = `Dia ${formattedDate}`;
-            btn.dataset.date = date;
-            btn.className = 'filter-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
-            dateContainer.appendChild(btn);
+        // Event listeners
+        document.getElementById('brand-filters-container').addEventListener('click', (e) => {
+            if (e.target.classList.contains('brand-btn')) {
+                activeBrandFilter = e.target.dataset.brand;
+                updateDashboard();
+            }
         });
+    }
 
-        // Filtros de marca
+    // Configurar filtros de marca
+    function setupBrandFilters() {
         const brands = [...new Set(rawData.map(item => item.brand))].filter(Boolean).sort();
         const brandContainer = document.getElementById('brand-filters-container');
         
-        brandContainer.innerHTML = '<button class="brand-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600 active" data-brand="all">Todas</button>';
+        brandContainer.innerHTML = '<button class="brand-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300 active" data-brand="all">Todas as Marcas</button>';
         
         brands.forEach(brand => {
             const btn = document.createElement('button');
             btn.textContent = brand;
             btn.dataset.brand = brand;
-            btn.className = 'brand-btn bg-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-600';
+            btn.className = 'brand-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300';
             brandContainer.appendChild(btn);
         });
     }
-    
-    function updateDashboard(dateFilter = 'all', brandFilter = 'all') {
-        activeDateFilter = dateFilter;
-        activeBrandFilter = brandFilter;
 
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.date === dateFilter);
-        });
+    // Atualizar dashboard
+    function updateDashboard() {
+        // Aplicar filtros
+        let filteredData = applyPeriodFilter(rawData);
         
-        document.querySelectorAll('.brand-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.brand === brandFilter);
-        });
-        
-        let filteredData = rawData;
-        if (dateFilter !== 'all') {
-            filteredData = filteredData.filter(item => item.date === dateFilter);
+        if (activeBrandFilter !== 'all') {
+            filteredData = filteredData.filter(item => item.brand === activeBrandFilter);
         }
-        if (brandFilter !== 'all') {
-            filteredData = filteredData.filter(item => item.brand === brandFilter);
-        }
-        
+
+        // Atualizar KPIs
         document.getElementById('total-items').textContent = filteredData
             .reduce((sum, item) => sum + (item.quantity || 0), 0)
             .toLocaleString('pt-BR');
@@ -380,11 +379,13 @@
             filteredData.map(item => item.sku).filter(sku => sku)
         ).size.toLocaleString('pt-BR');
         
+        // Atualizar gráficos
         renderTrendChart(filteredData);
         renderBrandChart(filteredData);
         renderCollectorCards(filteredData);
     }
 
+    // Renderizar gráfico de tendência
     function renderTrendChart(data) {
         const trendData = data.reduce((acc, item) => {
             acc[item.date] = (acc[item.date] || 0) + (item.quantity || 0);
@@ -411,10 +412,14 @@
                     label: 'Quantidade de Retrabalhos',
                     data: chartData,
                     fill: true,
-                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
                     borderColor: 'rgba(59, 130, 246, 1)',
-                    borderWidth: 2,
-                    tension: 0.3
+                    borderWidth: 3,
+                    tension: 0.4,
+                    pointBackgroundColor: '#3b82f6',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
                 }]
             },
             options: {
@@ -438,6 +443,7 @@
         });
     }
 
+    // Renderizar gráfico de marcas
     function renderBrandChart(data) {
         const brandSummary = data.reduce((acc, item) => {
             const brand = item.brand;
@@ -469,19 +475,22 @@
                         '#3b82f6', '#10b981', '#ef4444', '#f97316', '#8b5cf6',
                         '#eab308', '#06b6d4', '#84cc16'
                     ],
-                    borderWidth: 1,
-                    hoverOffset: 8
+                    borderWidth: 2,
+                    borderColor: '#1e293b',
+                    hoverOffset: 15
                 }]
             },
             options: {
                 maintainAspectRatio: false,
                 responsive: true,
+                cutout: '60%',
                 plugins: {
                     legend: {
                         position: 'right',
                         labels: {
                             color: '#d1d5db',
-                            font: { size: 12 }
+                            font: { size: 12 },
+                            padding: 15
                         }
                     }
                 }
@@ -489,6 +498,7 @@
         });
     }
 
+    // Renderizar cards de coletores
     function renderCollectorCards(data) {
         const collectorSummary = data.reduce((acc, item) => {
             const collector = item.collector;
@@ -502,14 +512,30 @@
         const container = document.getElementById('collector-container');
         container.innerHTML = '';
         
-        sortedCollectors.forEach(([collectorId, count]) => {
+        sortedCollectors.forEach(([collectorId, count], index) => {
+            const rank = index + 1;
+            const rankColors = {
+                1: 'bg-yellow-500',
+                2: 'bg-gray-400', 
+                3: 'bg-orange-500'
+            };
+            
             const card = document.createElement('div');
-            card.className = 'flex items-center p-4 bg-gray-900 rounded-lg hover:bg-gray-850 transition duration-300';
+            card.className = 'bg-slate-800 rounded-lg p-4 hover:bg-slate-700 transition duration-300';
             card.innerHTML = `
-                <div class="flex-grow">
-                    <div class="flex justify-between items-center">
-                        <p class="font-semibold text-white">${collectorId}</p>
-                        <p class="text-sm text-gray-300">${count} Registro${count !== 1 ? 's' : ''}</p>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 ${rankColors[rank] || 'bg-slate-600'} rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
+                            ${rank}
+                        </div>
+                        <div>
+                            <p class="font-semibold text-white">${collectorId}</p>
+                            <p class="text-sm text-gray-400">${count} registro${count !== 1 ? 's' : ''}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-blue-400">${count}</div>
+                        <div class="text-xs text-gray-500">registros</div>
                     </div>
                 </div>
             `;
@@ -517,58 +543,16 @@
         });
     }
 
-    function initializeApp() {
-        showDashboard();
-        setupFilters();
-        updateDashboard('all', 'all');
-        document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR');
-        
-        // Event listeners para filtros
-        document.getElementById('date-filters-container').addEventListener('click', (e) => {
-            if (e.target.classList.contains('filter-btn')) {
-                updateDashboard(e.target.dataset.date, activeBrandFilter);
-            }
-        });
-        
-        document.getElementById('brand-filters-container').addEventListener('click', (e) => {
-            if (e.target.classList.contains('brand-btn')) {
-                updateDashboard(activeDateFilter, e.target.dataset.brand);
-            }
-        });
-    }
-
+    // Atualizar dados
     async function refreshData() {
-        const button = document.getElementById('updateButton');
-        const loadingIcon = document.getElementById('loadingIcon');
-        const buttonText = document.getElementById('buttonText');
-
-        loadingIcon.classList.remove('hidden');
-        buttonText.textContent = 'Atualizando...';
-        button.disabled = true;
-
-        try {
-            if (usingMockData) {
-                // Para dados mock, apenas gera novos dados
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                const mockData = generateMockData();
-                processData(mockData);
-            } else {
-                // Para dados reais, tenta conexão direta
-                await tryDirectConnection();
-            }
-        } catch (error) {
-            console.error('Erro ao atualizar:', error);
-        } finally {
-            loadingIcon.classList.add('hidden');
-            buttonText.textContent = 'Atualizar Dados';
-            button.disabled = false;
-        }
+        await fetchRealData();
     }
 
-    // Inicialização - Começa com dados mock para demonstração imediata
-    document.addEventListener('DOMContentLoaded', () => {
-        useMockData(); // Inicia imediatamente com dados de exemplo
-    });
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', fetchRealData);
+
+    // Atualizar automaticamente a cada 2 minutos
+    setInterval(fetchRealData, 120000);
 
 </script>
 </body>
