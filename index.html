@@ -11,57 +11,15 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; }
         .chart-container { position: relative; width: 100%; height: 400px; }
-        .filter-btn.active {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-        #loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 9999; color: white; text-align: center; padding: 1rem;
-        }
+        .filter-btn.active { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0f172a, #1e293b); display: flex; justify-content: center; align-items: center; z-index: 9999; color: white; text-align: center; padding: 1rem; }
         .hidden { display: none !important; }
-        .spinner {
-            border: 4px solid rgba(59, 130, 246, 0.3);
-            border-radius: 50%;
-            border-top: 4px solid #3b82f6;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .kpi-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
-            border-left: 4px solid #3b82f6;
-            transition: all 0.3s ease;
-        }
-        .section-card {
-            background: linear-gradient(135deg, #1e293b, #334155);
-        }
-        .brand-btn.active {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-        #error-message {
-            position: fixed;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #ef4444; /* red-500 */
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            z-index: 10000;
-            display: none; /* Começa escondido */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
+        .spinner { border: 4px solid rgba(59, 130, 246, 0.3); border-radius: 50%; border-top: 4px solid #3b82f6; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .kpi-card { background: linear-gradient(135deg, #1e293b, #334155); border-left: 4px solid #3b82f6; transition: all 0.3s ease; }
+        .section-card { background: linear-gradient(135deg, #1e293b, #334155); }
+        .brand-btn.active { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        #error-message { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background-color: #ef4444; color: white; padding: 10px 20px; border-radius: 8px; z-index: 10000; display: none; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
     </style>
 </head>
 <body class="text-gray-300">
@@ -77,104 +35,26 @@
     </div>
 
     <div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
-                PAINEL GESTÃO DE RETRABALHOS
-            </h1>
-            <p class="text-lg text-gray-400">
-                Sistema integrado de monitoramento e controle de retrabalhos
-            </p>
-        </header>
-
-        <section class="mb-8 section-card rounded-xl p-6">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                <h2 class="text-xl font-bold text-white mb-4 md:mb-0">Filtrar por Período</h2>
-                <div class="flex flex-wrap gap-2">
-                    <button onclick="filterByPeriod('today', this)" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300">
-                        📅 Hoje
-                    </button>
-                    <button onclick="filterByPeriod('week', this)" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300">
-                        📊 Última Semana
-                    </button>
-                    <button onclick="filterByPeriod('month', this)" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300 active">
-                        📈 Último Mês
-                    </button>
-                    <button onclick="filterByPeriod('all', this)" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300">
-                        🗓️ Período Completo
-                    </button>
-                </div>
-            </div>
-            
-            <div class="mt-6">
-                <h3 class="text-lg font-semibold text-white mb-3">Filtrar por Marca</h3>
-                <div id="brand-filters-container" class="flex flex-wrap gap-2">
-                    </div>
-            </div>
-        </section>
-
-        <section id="kpis" class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="kpi-card rounded-xl p-6 text-center">
-                <h3 class="text-lg font-semibold text-gray-400">Total de Itens</h3>
-                <p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p>
-            </div>
-            
-            <div class="kpi-card rounded-xl p-6 text-center">
-                <h3 class="text-lg font-semibold text-gray-400">Registros</h3>
-                <p id="total-entries" class="text-4xl font-bold text-green-400 mt-2">0</p>
-            </div>
-            
-            <div class="kpi-card rounded-xl p-6 text-center">
-                <h3 class="text-lg font-semibold text-gray-400">Peças Únicas</h3>
-                <p id="unique-skus" class="text-4xl font-bold text-purple-400 mt-2">0</p>
-            </div>
-        </section>
-
-        <section class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="section-card rounded-xl p-6">
-                <h2 class="text-xl font-bold text-white mb-4">Tendência de Retrabalhos</h2>
-                <div class="chart-container">
-                    <canvas id="trendChart"></canvas>
-                </div>
-            </div>
-
-            <div class="section-card rounded-xl p-6">
-                <h2 class="text-xl font-bold text-white mb-4">Distribuição por Marca</h2>
-                <div class="chart-container">
-                    <canvas id="brandChart"></canvas>
-                </div>
-            </div>
-        </section>
-
-        <section class="mb-8">
-            <div class="section-card rounded-xl p-6">
-                <h2 class="text-xl font-bold text-white mb-4">Atividade por Coletor</h2>
-                <div id="collector-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    </div>
-            </div>
-        </section>
-
-        <footer class="text-center mt-12 text-gray-500 text-sm border-t border-gray-800 pt-6">
-            <p class="font-semibold">ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025</p>
-            <p>Última atualização: <span id="update-timestamp" class="text-blue-400">--/--/---- --:--:--</span></p>
-        </footer>
+        <header class="text-center mb-8"> <h1 class="text-3xl md:text-4xl font-bold text-white mb-2"> PAINEL GESTÃO DE RETRABALHOS </h1> <p class="text-lg text-gray-400"> Sistema integrado de monitoramento e controle de retrabalhos </p> </header>
+        <section class="mb-8 section-card rounded-xl p-6"> <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4"> <h2 class="text-xl font-bold text-white mb-4 md:mb-0">Filtrar por Período</h2> <div class="flex flex-wrap gap-2"> <button onclick="filterByPeriod('today', this)" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300"> 📅 Hoje </button> <button onclick="filterByPeriod('week', this)" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300"> 📊 Última Semana </button> <button onclick="filterByPeriod('month', this)" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300 active"> 📈 Último Mês </button> <button onclick="filterByPeriod('all', this)" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300"> 🗓️ Período Completo </button> </div> </div> <div class="mt-6"> <h3 class="text-lg font-semibold text-white mb-3">Filtrar por Marca</h3> <div id="brand-filters-container" class="flex flex-wrap gap-2"> </div> </div> </section>
+        <section id="kpis" class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6"> <div class="kpi-card rounded-xl p-6 text-center"> <h3 class="text-lg font-semibold text-gray-400">Total de Itens</h3> <p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p> </div> <div class="kpi-card rounded-xl p-6 text-center"> <h3 class="text-lg font-semibold text-gray-400">Registros</h3> <p id="total-entries" class="text-4xl font-bold text-green-400 mt-2">0</p> </div> <div class="kpi-card rounded-xl p-6 text-center"> <h3 class="text-lg font-semibold text-gray-400">Peças Únicas</h3> <p id="unique-skus" class="text-4xl font-bold text-purple-400 mt-2">0</p> </div> </section>
+        <section class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8"> <div class="section-card rounded-xl p-6"> <h2 class="text-xl font-bold text-white mb-4">Tendência de Retrabalhos</h2> <div class="chart-container"> <canvas id="trendChart"></canvas> </div> </div> <div class="section-card rounded-xl p-6"> <h2 class="text-xl font-bold text-white mb-4">Distribuição por Marca</h2> <div class="chart-container"> <canvas id="brandChart"></canvas> </div> </div> </section>
+        <section class="mb-8"> <div class="section-card rounded-xl p-6"> <h2 class="text-xl font-bold text-white mb-4">Atividade por Coletor</h2> <div id="collector-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> </div> </div> </section>
+        <footer class="text-center mt-12 text-gray-500 text-sm border-t border-gray-800 pt-6"> <p class="font-semibold">ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025</p> <p>Última atualização: <span id="update-timestamp" class="text-blue-400">--/--/---- --:--:--</span></p> </footer>
     </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx9EfxWgSDAQq22tnji1Q4kewAwQzPIUMA5qC8XYax3RTsgqyp6KniP61y0bqa4HCaX/exec";
-    
-    let rawData = []; 
-    let trendChartInstance = null;
-    let brandChartInstance = null;
-    let activePeriodFilter = 'month'; 
-    let activeBrandFilter = 'all';    
+    // COLE A NOVA URL AQUI:
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykb_WXurts85XVUVtT6uX6s7i0mxmBF8_6KGXbooOD1rkICo8QXl69caWfDihvlV8w/exec"; 
 
-    function fetchDataWithJSONP() {
+    let rawData = []; let trendChartInstance = null; let brandChartInstance = null; let activePeriodFilter = 'month'; let activeBrandFilter = 'all'; 
+
+    function fetchDataWithJSONP() { /* ... código idêntico ao da resposta anterior ... */ 
         console.log("Iniciando fetchDataWithJSONP..."); 
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
             const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
             console.log("Callback:", callbackName); 
-            
             let timeoutId = null; 
 
             window[callbackName] = function(data) {
@@ -182,16 +62,10 @@
                 clearTimeout(timeoutId); 
                 delete window[callbackName];
                 if (script.parentNode) { script.parentNode.removeChild(script); }
-                
-                if (data && data.success) {
-                    console.log("Dados recebidos com sucesso via JSONP."); 
-                    resolve(data);
-                } else {
-                    console.error("Erro retornado pelo script:", data ? data.error : 'Resposta inválida'); 
-                    reject(new Error(data.error || 'Erro desconhecido retornado pelo script'));
-                }
+                if (data && data.success) { console.log("Dados recebidos com sucesso via JSONP."); resolve(data); } 
+                else { console.error("Erro retornado pelo script:", data ? data.error : 'Resposta inválida'); reject(new Error(data.error || 'Erro desconhecido retornado pelo script')); }
             };
-            
+
             script.onerror = (event) => {
                 console.error("Erro no carregamento do script JSONP:", event); 
                 clearTimeout(timeoutId); 
@@ -213,7 +87,6 @@
             }, 15000); 
         });
     }
-
     function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
     function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
     function showDashboard() { document.getElementById('dashboard-content').classList.remove('hidden'); }
@@ -222,12 +95,10 @@
         const errorDiv = document.getElementById('error-message');
         errorDiv.textContent = message || "Erro ao carregar dados. Verifique o console (F12).";
         errorDiv.style.display = 'block';
-        // Esconde a mensagem após alguns segundos
         setTimeout(() => { errorDiv.style.display = 'none'; }, 8000); 
     }
 
-
-    async function fetchRealData() {
+    async function fetchRealData() { /* ... código idêntico ao da resposta anterior, sem useSampleData ... */ 
         console.log("Iniciando fetchRealData..."); 
         showLoading(); 
         try {
@@ -243,227 +114,105 @@
             }
         } catch (error) {
             console.error('Erro final ao carregar ou processar dados:', error); 
-            // NÃO CHAMA MAIS useSampleData()
-            // Mantém a tela de loading visível OU mostra uma mensagem de erro
-            // hideLoading(); // Comente esta linha para manter o loading
             showErrorMessage(`Falha ao carregar dados: ${error.message}. Verifique a conexão e o console (F12).`);
-            // Se quiser que o loading suma e mostre só o erro, descomente hideLoading()
             hideLoading(); 
-            // O dashboard não será mostrado
         }
     }
 
-    // REMOVIDO: function useSampleData() { ... }
+    // REMOVIDO: useSampleData
 
-    function processData(data) {
+    function processData(data) { /* ... código idêntico ao da resposta anterior ... */ 
         console.log("Iniciando processData..."); 
-        if (!Array.isArray(data)) {
-            console.error("Erro grave: 'data' não é um array em processData:", data);
-            throw new Error("Formato de dados interno inválido."); // Lança erro para o catch de fetchRealData
-        }
+        if (!Array.isArray(data)) { console.error("Erro grave: 'data' não é um array em processData:", data); throw new Error("Formato de dados interno inválido."); }
         rawData = data.map(item => {
             let dateValue = item.data || item.timestamp || item.date;
             let dateObj = new Date(dateValue);
-            if (isNaN(dateObj.getTime())) {
-                console.warn("Data inválida recebida, usando data atual:", dateValue, item);
-                dateObj = new Date(); 
-            }
+            if (isNaN(dateObj.getTime())) { console.warn("Data inválida recebida, usando data atual:", dateValue, item); dateObj = new Date(); }
             return {
-                timestamp: dateObj,
-                date: dateObj.toISOString().split('T')[0], 
-                collector: item.coletor || item.collector || 'Desconhecido',
-                brand: item.marca || item.brand || 'Sem Marca',
-                sku: item.codigo || item.sku || 'N/A',
-                quantity: parseInt(item.quantidade || item.quantity) || 0,
-                location: item.localizacao || item.location || 'N/A'
+                timestamp: dateObj, date: dateObj.toISOString().split('T')[0], collector: item.coletor || item.collector || 'Desconhecido',
+                brand: item.marca || item.brand || 'Sem Marca', sku: item.codigo || item.sku || 'N/A',
+                quantity: parseInt(item.quantidade || item.quantity) || 0, location: item.localizacao || item.location || 'N/A'
             };
         });
         console.log("rawData processado:", rawData.length, "itens"); 
         initializeApp(); 
     }
-
-    function filterByPeriod(period, buttonElement) {
+    function filterByPeriod(period, buttonElement) { /* ... código idêntico ao da resposta anterior ... */ 
         console.log("Filtrando por período:", period); 
         activePeriodFilter = period;
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         if(buttonElement) buttonElement.classList.add('active');
         updateDashboard(); 
     }
-
-    function applyPeriodFilter(data) {
+    function applyPeriodFilter(data) { /* ... código idêntico ao da resposta anterior ... */ 
         if (!Array.isArray(data)) return []; 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); 
-        let startDate;
-
+        const today = new Date(); today.setHours(0, 0, 0, 0); let startDate;
         switch(activePeriodFilter) {
-            case 'today':
-                startDate = new Date(today); 
-                return data.filter(item => item.timestamp >= startDate);
-            case 'week':
-                startDate = new Date(today);
-                startDate.setDate(today.getDate() - 7);
-                return data.filter(item => item.timestamp >= startDate);
-            case 'month':
-                startDate = new Date(today);
-                startDate.setMonth(today.getMonth() - 1);
-                return data.filter(item => item.timestamp >= startDate);
+            case 'today': startDate = new Date(today); return data.filter(item => item.timestamp >= startDate);
+            case 'week': startDate = new Date(today); startDate.setDate(today.getDate() - 7); return data.filter(item => item.timestamp >= startDate);
+            case 'month': startDate = new Date(today); startDate.setMonth(today.getMonth() - 1); return data.filter(item => item.timestamp >= startDate);
             case 'all': default: return data;
         }
     }
-
-    function initializeApp() {
-        console.log("Iniciando initializeApp..."); 
+    function initializeApp() { /* ... código idêntico ao da resposta anterior ... */ 
+         console.log("Iniciando initializeApp..."); 
         setupBrandFilters(); 
         updateDashboard(); 
     }
-
-    function setupBrandFilters() {
+    function setupBrandFilters() { /* ... código idêntico ao da resposta anterior ... */ 
         console.log("Configurando filtros de marca..."); 
-        const uniqueBrands = rawData && Array.isArray(rawData) 
-            ? [...new Set(rawData.map(item => item.brand).filter(Boolean))].sort()
-            : [];
+        const uniqueBrands = rawData && Array.isArray(rawData) ? [...new Set(rawData.map(item => item.brand).filter(Boolean))].sort() : [];
         console.log("Marcas únicas:", uniqueBrands); 
-        const brandContainer = document.getElementById('brand-filters-container');
-        brandContainer.innerHTML = ''; 
-
-        const allBtn = document.createElement('button');
-        allBtn.textContent = 'Todas as Marcas';
-        allBtn.dataset.brand = 'all';
-        allBtn.className = 'brand-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300';
-        if (activeBrandFilter === 'all') allBtn.classList.add('active');
-        brandContainer.appendChild(allBtn);
-
+        const brandContainer = document.getElementById('brand-filters-container'); brandContainer.innerHTML = ''; 
+        const allBtn = document.createElement('button'); allBtn.textContent = 'Todas as Marcas'; allBtn.dataset.brand = 'all'; allBtn.className = 'brand-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300'; if (activeBrandFilter === 'all') allBtn.classList.add('active'); brandContainer.appendChild(allBtn);
         uniqueBrands.forEach(brand => {
-            const btn = document.createElement('button');
-            btn.textContent = brand;
-            btn.dataset.brand = brand;
-            btn.className = 'brand-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300';
-            if (activeBrandFilter === brand) btn.classList.add('active');
-            brandContainer.appendChild(btn);
+            const btn = document.createElement('button'); btn.textContent = brand; btn.dataset.brand = brand; btn.className = 'brand-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300'; if (activeBrandFilter === brand) btn.classList.add('active'); brandContainer.appendChild(btn);
         });
-
-        // Adiciona listener de clique (removendo antes para evitar duplicidade)
         const brandClickListener = (e) => {
             if (e.target.classList.contains('brand-btn')) {
-                activeBrandFilter = e.target.dataset.brand;
-                console.log("Filtrando por marca:", activeBrandFilter); 
-                document.querySelectorAll('#brand-filters-container .brand-btn').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.brand === activeBrandFilter);
-                });
+                activeBrandFilter = e.target.dataset.brand; console.log("Filtrando por marca:", activeBrandFilter); 
+                document.querySelectorAll('#brand-filters-container .brand-btn').forEach(btn => { btn.classList.toggle('active', btn.dataset.brand === activeBrandFilter); });
                 updateDashboard();
             }
         };
-        // Remove listener antigo (se existir) e adiciona o novo
-        brandContainer.removeEventListener('click', brandContainer.__clickListener); 
-        brandContainer.addEventListener('click', brandClickListener);
-        brandContainer.__clickListener = brandClickListener; // Guarda referência para remover depois
-
+        brandContainer.removeEventListener('click', brandContainer.__clickListener); brandContainer.addEventListener('click', brandClickListener); brandContainer.__clickListener = brandClickListener; 
     }
-
-    function updateDashboard() {
+    function updateDashboard() { /* ... código idêntico ao da resposta anterior ... */ 
         console.log("Atualizando dashboard..."); 
         const dataToFilter = rawData && Array.isArray(rawData) ? rawData : [];
         let filteredData = applyPeriodFilter(dataToFilter);
-        
-        if (activeBrandFilter !== 'all') {
-            filteredData = filteredData.filter(item => item.brand === activeBrandFilter);
-        }
+        if (activeBrandFilter !== 'all') { filteredData = filteredData.filter(item => item.brand === activeBrandFilter); }
         console.log("Dados filtrados:", filteredData.length, "itens"); 
-
         document.getElementById('total-items').textContent = filteredData.reduce((sum, item) => sum + (item.quantity || 0), 0).toLocaleString('pt-BR');
         document.getElementById('total-entries').textContent = filteredData.length.toLocaleString('pt-BR');
         document.getElementById('unique-skus').textContent = new Set(filteredData.map(item => item.sku).filter(sku => sku && sku !== 'N/A')).size.toLocaleString('pt-BR');
-        
-        renderTrendChart(filteredData);
-        renderBrandChart(filteredData);
-        renderCollectorCards(filteredData);
-        
+        renderTrendChart(filteredData); renderBrandChart(filteredData); renderCollectorCards(filteredData);
         document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
         console.log("Dashboard atualizado."); 
     }
-
-    function renderTrendChart(data) {
-        const trendData = data.reduce((acc, item) => {
-            const dateStr = item.date; 
-            if (dateStr) acc[dateStr] = (acc[dateStr] || 0) + (item.quantity || 0);
-            return acc;
-        }, {});
-        
-        const sortedDates = Object.keys(trendData).sort(); 
-        const labels = sortedDates.map(dateStr => { const parts = dateStr.split('-'); return `${parts[2]}/${parts[1]}`; });
-        const chartData = sortedDates.map(dateStr => trendData[dateStr]);
-        
-        const ctx = document.getElementById('trendChart').getContext('2d');
-        if (trendChartInstance) trendChartInstance.destroy();
-        
-        trendChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: { labels, datasets: [{ label: 'Quantidade', data: chartData, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 3, tension: 0.4 }] },
-            options: { maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, ticks: { color: '#d1d5db' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, x: { ticks: { color: '#d1d5db' }, grid: { display: false } } }, plugins: { legend: { display: false } } }
-        });
+    function renderTrendChart(data) { /* ... código idêntico ao da resposta anterior ... */ 
+        const trendData = data.reduce((acc, item) => { const dateStr = item.date; if (dateStr) acc[dateStr] = (acc[dateStr] || 0) + (item.quantity || 0); return acc; }, {});
+        const sortedDates = Object.keys(trendData).sort(); const labels = sortedDates.map(dateStr => { const parts = dateStr.split('-'); return `${parts[2]}/${parts[1]}`; }); const chartData = sortedDates.map(dateStr => trendData[dateStr]);
+        const ctx = document.getElementById('trendChart').getContext('2d'); if (trendChartInstance) trendChartInstance.destroy();
+        trendChartInstance = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'Quantidade', data: chartData, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 3, tension: 0.4 }] }, options: { maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, ticks: { color: '#d1d5db' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, x: { ticks: { color: '#d1d5db' }, grid: { display: false } } }, plugins: { legend: { display: false } } } });
     }
-
-    function renderBrandChart(data) {
-        const brandSummary = data.reduce((acc, item) => {
-            const brand = item.brand || 'Sem Marca'; 
-            acc[brand] = (acc[brand] || 0) + (item.quantity || 0);
-            return acc;
-        }, {});
-        
-        const sortedBrands = Object.entries(brandSummary).sort(([,a], [,b]) => b - a).slice(0, 8);
-        const labels = sortedBrands.map(item => item[0]);
-        const chartData = sortedBrands.map(item => item[1]);
-        
-        const ctx = document.getElementById('brandChart').getContext('2d');
-        if (brandChartInstance) brandChartInstance.destroy();
-        
-        brandChartInstance = new Chart(ctx, {
-            type: 'doughnut',
-            data: { labels, datasets: [{ label: 'Quantidade', data: chartData, backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#8b5cf6', '#eab308', '#06b6d4', '#84cc16'], borderWidth: 2, borderColor: '#1e293b' }] },
-            options: { maintainAspectRatio: false, responsive: true, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '#d1d5db', font: { size: 12 }, padding: 15 } } } }
-        });
+    function renderBrandChart(data) { /* ... código idêntico ao da resposta anterior ... */ 
+        const brandSummary = data.reduce((acc, item) => { const brand = item.brand || 'Sem Marca'; acc[brand] = (acc[brand] || 0) + (item.quantity || 0); return acc; }, {});
+        const sortedBrands = Object.entries(brandSummary).sort(([,a], [,b]) => b - a).slice(0, 8); const labels = sortedBrands.map(item => item[0]); const chartData = sortedBrands.map(item => item[1]);
+        const ctx = document.getElementById('brandChart').getContext('2d'); if (brandChartInstance) brandChartInstance.destroy();
+        brandChartInstance = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ label: 'Quantidade', data: chartData, backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#8b5cf6', '#eab308', '#06b6d4', '#84cc16'], borderWidth: 2, borderColor: '#1e293b' }] }, options: { maintainAspectRatio: false, responsive: true, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '#d1d5db', font: { size: 12 }, padding: 15 } } } } });
     }
-
-    function renderCollectorCards(data) {
-        const collectorSummary = data.reduce((acc, item) => {
-            const collector = item.collector || 'Desconhecido'; 
-            acc[collector] = (acc[collector] || 0) + 1; 
-            return acc;
-        }, {});
-        
-        const sortedCollectors = Object.entries(collectorSummary).sort(([,a], [,b]) => b - a);
-        const container = document.getElementById('collector-container');
-        container.innerHTML = ''; 
-        
+    function renderCollectorCards(data) { /* ... código idêntico ao da resposta anterior ... */ 
+        const collectorSummary = data.reduce((acc, item) => { const collector = item.collector || 'Desconhecido'; acc[collector] = (acc[collector] || 0) + 1; return acc; }, {});
+        const sortedCollectors = Object.entries(collectorSummary).sort(([,a], [,b]) => b - a); const container = document.getElementById('collector-container'); container.innerHTML = ''; 
         sortedCollectors.forEach(([collectorId, count], index) => {
-            const rank = index + 1;
-            const rankColors = { 1: 'bg-yellow-500', 2: 'bg-gray-400', 3: 'bg-orange-500' };
-            const card = document.createElement('div');
-            card.className = 'bg-slate-800 rounded-lg p-4 hover:bg-slate-700 transition duration-300';
-            card.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <div class="w-8 h-8 ${rankColors[rank] || 'bg-slate-600'} rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
-                            ${rank}
-                        </div>
-                        <div>
-                            <p class="font-semibold text-white">${collectorId}</p>
-                            <p class="text-sm text-gray-400">${count} registro${count !== 1 ? 's' : ''}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
+            const rank = index + 1; const rankColors = { 1: 'bg-yellow-500', 2: 'bg-gray-400', 3: 'bg-orange-500' }; const card = document.createElement('div'); card.className = 'bg-slate-800 rounded-lg p-4 hover:bg-slate-700 transition duration-300';
+            card.innerHTML = `<div class="flex items-center justify-between"> <div class="flex items-center"> <div class="w-8 h-8 ${rankColors[rank] || 'bg-slate-600'} rounded-full flex items-center justify-center text-white font-bold text-sm mr-3"> ${rank} </div> <div> <p class="font-semibold text-white">${collectorId}</p> <p class="text-sm text-gray-400">${count} registro${count !== 1 ? 's' : ''}</p> </div> </div> </div>`;
             container.appendChild(card);
         });
     }
-
-    // Inicialização quando o DOM estiver pronto
     document.addEventListener('DOMContentLoaded', fetchRealData);
-
-    // Atualizar automaticamente a cada 2 minutos (120000 ms)
     setInterval(fetchRealData, 120000);
-
 </script>
 </body>
 </html>
