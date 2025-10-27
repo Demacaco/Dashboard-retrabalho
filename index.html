@@ -137,25 +137,41 @@
         }
     }
 
-    function processData(data) { 
-        console.log("Iniciando processData..."); 
+    function processData(data) {
+        console.log("Iniciando processData...");
         if (!Array.isArray(data)) { console.error("Erro grave: 'data' não é um array em processData:", data); throw new Error("Formato de dados interno inválido."); }
+        
         rawData = data.map(item => {
-            let dateValue = item.data || item.timestamp || item.date;
+            
+            // --- INÍCIO DA CORREÇÃO ---
+            // Procura a data em várias colunas, incluindo 'Data' (maiúsculo) ou 'Timestamp data'
+            // Esta é a principal causa do seu bug no filtro "Hoje"
+            let dateValue = item.data || item.Data || item.timestamp || item.Timestamp || item["Timestamp data"] || item.date;
+            // --- FIM DA CORREÇÃO ---
+
             let dateObj = new Date(dateValue);
-            if (isNaN(dateObj.getTime())) { console.warn("Data inválida recebida, usando data atual:", dateValue, item); dateObj = new Date(); }
+            
+            // Se a data for inválida (ex: célula vazia), NÃO usamos new Date()
+            // Usamos uma data muito antiga para que ela não apareça nos filtros
+            if (isNaN(dateObj.getTime())) { 
+                console.warn("Data inválida detectada, movendo para 'inválido':", dateValue, item); 
+                dateObj = new Date('1970-01-01'); // Joga para o passado
+            }
+            
             return {
-                timestamp: dateObj, 
-                date: dateObj.toISOString().split('T')[0], 
-                collector: item.coletor || item.collector || 'Desconhecido',
-                brand: (item.marca || item.brand || 'Sem Marca').toString().trim().toLowerCase(),
-                sku: item.codigo || item.sku || 'N/A', 
-                quantity: parseInt(item.quantidade || item.quantity) || 0, 
-                location: item.localizacao || item.location || 'N/A'
+                timestamp: dateObj,
+                date: dateObj.toISOString().split('T')[0],
+                // Correção para ser flexível com os nomes dos cabeçalhos
+                collector: item.coletor || item.Coletor || 'Desconhecido',
+                brand: (item.marca || item.Marca || 'Sem Marca').toString().trim().toLowerCase(),
+                sku: item.codigo || item.Codigo || 'N/A',
+                quantity: parseInt(item.quantidade || item.Quantidade) || 0,
+                location: item.localizacao || item.Localização || 'N/A' 
             };
         });
-        console.log("rawData processado:", rawData.length, "itens"); 
-        initializeApp(); 
+        
+        console.log("rawData processado:", rawData.length, "itens");
+        initializeApp();
     }
     
     function filterByPeriod(period, buttonElement) { 
