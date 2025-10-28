@@ -51,10 +51,24 @@
             <div class="mt-6"> 
                 <h3 class="text-lg font-semibold text-white mb-3">Filtrar por Marca</h3> 
                 <div id="brand-filters-container" class="flex flex-wrap gap-2"> 
-                    </div> 
+                </div> 
             </div> 
         </section>
         
+        <section class="mb-8 section-card rounded-xl p-6">
+            <h2 class="text-xl font-bold text-white mb-4">Buscar Registro por Código</h2>
+            <div class="flex flex-col md:flex-row gap-4">
+                <input type="text" id="search-input" placeholder="Digite o código da peça..." 
+                       class="flex-grow p-3 bg-slate-700 text-white rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="search-button" 
+                        class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-lg transition duration-300">
+                    Buscar
+                </button>
+            </div>
+            
+            <div id="search-results-container" class="mt-6 text-gray-300">
+                </div>
+        </section>
         <section id="kpis" class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6"> <div class="kpi-card rounded-xl p-6 text-center"> <h3 class="text-lg font-semibold text-gray-400">Total de Itens</h3> <p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p> </div> <div class="kpi-card rounded-xl p-6 text-center"> <h3 class="text-lg font-semibold text-gray-400">Registros</h3> <p id="total-entries" class="text-4xl font-bold text-green-400 mt-2">0</p> </div> <div class="kpi-card rounded-xl p-6 text-center"> <h3 class="text-lg font-semibold text-gray-400">Peças Únicas</h3> <p id="unique-skus" class="text-4xl font-bold text-purple-400 mt-2">0</p> </div> </section>
         <section class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8"> <div class="section-card rounded-xl p-6"> <h2 class="text-xl font-bold text-white mb-4">Tendência de Retrabalhos</h2> <div class="chart-container"> <canvas id="trendChart"></canvas> </div> </div> <div class="section-card rounded-xl p-6"> <h2 class="text-xl font-bold text-white mb-4">Distribuição por Marca</h2> <div class="chart-container"> <canvas id="brandChart"></canvas> </div> </div> </section>
         <section class="mb-8"> <div class="section-card rounded-xl p-6"> <h2 class="text-xl font-bold text-white mb-4">Atividade por Coletor</h2> <div id="collector-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> </div> </div> </section>
@@ -252,7 +266,7 @@
             return `${parts[2]}/${parts[1]}`; 
         }); 
         const chartData = sortedDates.map(dateStr => trendData[dateStr]);
-        const ctx = document.getElementById('trendChart').getContext('2d'); if (trendChartInstance) trendChartInstance.destroy();
+        const ctx = document.getElementById('trendChart').getContext('d'); if (trendChartInstance) trendChartInstance.destroy();
         trendChartInstance = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'Quantidade', data: chartData, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 3, tension: 0.4 }] }, options: { maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, ticks: { color: '#d1d5db' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, x: { ticks: { color: '#d1d5db' }, grid: { display: false } } }, plugins: { legend: { display: false } } } });
     }
     
@@ -277,7 +291,79 @@
         });
     }
 
+    // ========== INÍCIO DA NOVA FUNÇÃO DE BUSCA ==========
+    function setupSearch() {
+        const searchButton = document.getElementById('search-button');
+        const searchInput = document.getElementById('search-input');
+        const resultsContainer = document.getElementById('search-results-container');
+
+        // Função para executar a busca
+        const performSearch = () => {
+            const query = searchInput.value.trim().toLowerCase();
+            if (query === "") {
+                resultsContainer.innerHTML = '<p class="text-yellow-400">Por favor, digite um código para buscar.</p>';
+                return;
+            }
+
+            // Filtra o rawData (todos os dados da planilha)
+            const results = rawData.filter(item => 
+                item.sku && item.sku.toLowerCase().includes(query)
+            );
+
+            // Exibe os resultados
+            if (results.length === 0) {
+                resultsContainer.innerHTML = '<p class="text-red-400">Nenhum registro encontrado para esse código.</p>';
+            } else {
+                // Ordena os resultados do mais recente para o mais antigo
+                results.sort((a, b) => b.timestamp - a.timestamp);
+
+                // Cria o HTML para a tabela de resultados
+                let html = `
+                    <p class="text-green-400 mb-3">${results.length} registro(s) encontrado(s):</p>
+                    <div class="overflow-x-auto rounded-lg bg-slate-800">
+                        <table class="min-w-full divide-y divide-slate-700">
+                            <thead class="bg-slate-900">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Data</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Coletor</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Código</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Qtd.</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-700">
+                                ${results.map(item => `
+                                    <tr>
+                                        <td class="px-4 py-3 whitespace-nowrap">${new Date(item.timestamp).toLocaleDateString('pt-BR')}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap font-medium">${item.collector}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">${item.sku}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap">${item.quantity}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                resultsContainer.innerHTML = html;
+            }
+        };
+
+        // Adiciona o evento de clique ao botão
+        searchButton.addEventListener('click', performSearch);
+        
+        // Opcional: Permite buscar apertando "Enter" no campo de input
+        searchInput.addEventListener('keyup', (event) => {
+            if (event.key === 'Enter') {
+                performSearch();
+            }
+        });
+    }
+    // ========== FIM DA NOVA FUNÇÃO DE BUSCA ==========
+
+
     document.addEventListener('DOMContentLoaded', fetchRealData);
+    
+    // ========== NOVA LINHA PARA LIGAR A BUSCA ==========
+    document.addEventListener('DOMContentLoaded', setupSearch);
     
     // LINHA ALTERADA PARA ATUALIZAR A CADA 2 HORAS
     setInterval(fetchRealData, 7200000); 
