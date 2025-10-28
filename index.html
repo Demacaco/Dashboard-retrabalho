@@ -294,7 +294,7 @@
         });
     }
 
-    // ========== FUNÇÃO DE BUSCA ==========
+// ========== FUNÇÃO DE BUSCA (CORRIGIDA) ==========
     function setupSearch() {
         const searchButton = document.getElementById('search-button');
         const searchInput = document.getElementById('search-input');
@@ -312,9 +312,12 @@
                 return;
             }
 
+            // --- CORREÇÃO AQUI ---
+            // Adicionamos .toString() para garantir que números também sejam tratados como texto
             const results = rawData.filter(item => 
-                item.sku && item.sku.toLowerCase().includes(query)
+                item.sku && item.sku.toString().toLowerCase().includes(query)
             );
+            // --- FIM DA CORREÇÃO ---
 
             if (results.length === 0) {
                 resultsContainer.innerHTML = '<p class="text-red-400">Nenhum registro encontrado para esse código.</p>';
