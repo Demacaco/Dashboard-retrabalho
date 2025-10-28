@@ -69,6 +69,7 @@
             <div id="search-results-container" class="mt-6 text-gray-300">
                 </div>
         </section>
+        
         <section id="kpis" class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6"> <div class="kpi-card rounded-xl p-6 text-center"> <h3 class="text-lg font-semibold text-gray-400">Total de Itens</h3> <p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p> </div> <div class="kpi-card rounded-xl p-6 text-center"> <h3 class="text-lg font-semibold text-gray-400">Registros</h3> <p id="total-entries" class="text-4xl font-bold text-green-400 mt-2">0</p> </div> <div class="kpi-card rounded-xl p-6 text-center"> <h3 class="text-lg font-semibold text-gray-400">Peças Únicas</h3> <p id="unique-skus" class="text-4xl font-bold text-purple-400 mt-2">0</p> </div> </section>
         <section class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8"> <div class="section-card rounded-xl p-6"> <h2 class="text-xl font-bold text-white mb-4">Tendência de Retrabalhos</h2> <div class="chart-container"> <canvas id="trendChart"></canvas> </div> </div> <div class="section-card rounded-xl p-6"> <h2 class="text-xl font-bold text-white mb-4">Distribuição por Marca</h2> <div class="chart-container"> <canvas id="brandChart"></canvas> </div> </div> </section>
         <section class="mb-8"> <div class="section-card rounded-xl p-6"> <h2 class="text-xl font-bold text-white mb-4">Atividade por Coletor</h2> <div id="collector-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> </div> </div> </section>
@@ -157,25 +158,17 @@
         
         rawData = data.map(item => {
             
-            // --- INÍCIO DA CORREÇÃO ---
-            // Procura a data em várias colunas, incluindo 'Data' (maiúsculo) ou 'Timestamp data'
-            // Esta é a principal causa do seu bug no filtro "Hoje"
             let dateValue = item.data || item.Data || item.timestamp || item.Timestamp || item["Timestamp data"] || item.date;
-            // --- FIM DA CORREÇÃO ---
-
             let dateObj = new Date(dateValue);
             
-            // Se a data for inválida (ex: célula vazia), NÃO usamos new Date()
-            // Usamos uma data muito antiga para que ela não apareça nos filtros
             if (isNaN(dateObj.getTime())) { 
                 console.warn("Data inválida detectada, movendo para 'inválido':", dateValue, item); 
-                dateObj = new Date('1970-01-01'); // Joga para o passado
+                dateObj = new Date('1970-01-01'); 
             }
             
             return {
                 timestamp: dateObj,
                 date: dateObj.toISOString().split('T')[0],
-                // Correção para ser flexível com os nomes dos cabeçalhos
                 collector: item.coletor || item.Coletor || 'Desconhecido',
                 brand: (item.marca || item.Marca || 'Sem Marca').toString().trim().toLowerCase(),
                 sku: item.codigo || item.Codigo || 'N/A',
@@ -205,11 +198,11 @@
             case 'today':
                 startDate = new Date(today);
                 return data.filter(item => item.timestamp >= startDate);
-            case 'week': // "Esta Semana" (Desde o último Domingo)
+            case 'week': 
                 startDate = new Date(today);
                 startDate.setDate(today.getDate() - today.getDay()); 
                 return data.filter(item => item.timestamp >= startDate);
-            case 'month': // "Este Mês" (Desde o dia 1º)
+            case 'month': 
                 startDate = new Date(today);
                 startDate.setDate(1); 
                 return data.filter(item => item.timestamp >= startDate);
@@ -253,7 +246,12 @@
         document.getElementById('total-items').textContent = filteredData.reduce((sum, item) => sum + (item.quantity || 0), 0).toLocaleString('pt-BR');
         document.getElementById('total-entries').textContent = filteredData.length.toLocaleString('pt-BR');
         document.getElementById('unique-skus').textContent = new Set(filteredData.map(item => item.sku).filter(sku => sku && sku !== 'N/A')).size.toLocaleString('pt-BR');
-        renderTrendChart(filteredData); renderBrandChart(filteredData); renderCollectorCards(filteredData);
+        
+        // As funções de renderização vêm *depois* de atualizar os KPIs
+        renderTrendChart(filteredData); 
+        renderBrandChart(filteredData); 
+        renderCollectorCards(filteredData);
+        
         document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
         console.log("Dashboard atualizado."); 
     }
@@ -266,7 +264,12 @@
             return `${parts[2]}/${parts[1]}`; 
         }); 
         const chartData = sortedDates.map(dateStr => trendData[dateStr]);
-        const ctx = document.getElementById('trendChart').getContext('d'); if (trendChartInstance) trendChartInstance.destroy();
+        
+        // ========== INÍCIO DA CORREÇÃO DO GRÁFICO ==========
+        const ctx = document.getElementById('trendChart').getContext('2d'); 
+        // ========== FIM DA CORREÇÃO DO GRÁFICO ==========
+        
+        if (trendChartInstance) trendChartInstance.destroy();
         trendChartInstance = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'Quantidade', data: chartData, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 3, tension: 0.4 }] }, options: { maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, ticks: { color: '#d1d5db' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, x: { ticks: { color: '#d1d5db' }, grid: { display: false } } }, plugins: { legend: { display: false } } } });
     }
     
@@ -291,13 +294,17 @@
         });
     }
 
-    // ========== INÍCIO DA NOVA FUNÇÃO DE BUSCA ==========
+    // ========== FUNÇÃO DE BUSCA ==========
     function setupSearch() {
         const searchButton = document.getElementById('search-button');
         const searchInput = document.getElementById('search-input');
         const resultsContainer = document.getElementById('search-results-container');
 
-        // Função para executar a busca
+        if (!searchButton || !searchInput || !resultsContainer) {
+            console.error("Elementos da busca não encontrados. A busca não vai funcionar.");
+            return;
+        }
+
         const performSearch = () => {
             const query = searchInput.value.trim().toLowerCase();
             if (query === "") {
@@ -305,19 +312,15 @@
                 return;
             }
 
-            // Filtra o rawData (todos os dados da planilha)
             const results = rawData.filter(item => 
                 item.sku && item.sku.toLowerCase().includes(query)
             );
 
-            // Exibe os resultados
             if (results.length === 0) {
                 resultsContainer.innerHTML = '<p class="text-red-400">Nenhum registro encontrado para esse código.</p>';
             } else {
-                // Ordena os resultados do mais recente para o mais antigo
                 results.sort((a, b) => b.timestamp - a.timestamp);
 
-                // Cria o HTML para a tabela de resultados
                 let html = `
                     <p class="text-green-400 mb-3">${results.length} registro(s) encontrado(s):</p>
                     <div class="overflow-x-auto rounded-lg bg-slate-800">
@@ -347,26 +350,20 @@
             }
         };
 
-        // Adiciona o evento de clique ao botão
         searchButton.addEventListener('click', performSearch);
         
-        // Opcional: Permite buscar apertando "Enter" no campo de input
         searchInput.addEventListener('keyup', (event) => {
             if (event.key === 'Enter') {
                 performSearch();
             }
         });
     }
-    // ========== FIM DA NOVA FUNÇÃO DE BUSCA ==========
 
-
+    // ========== EVENT LISTENERS (LIGANDO TUDO) ==========
     document.addEventListener('DOMContentLoaded', fetchRealData);
-    
-    // ========== NOVA LINHA PARA LIGAR A BUSCA ==========
     document.addEventListener('DOMContentLoaded', setupSearch);
     
-    // LINHA ALTERADA PARA ATUALIZAR A CADA 2 HORAS
-    setInterval(fetchRealData, 7200000); 
+    setInterval(fetchRealData, 7200000); // Atualiza a cada 2 horas
 </script>
 </body>
 </html>
