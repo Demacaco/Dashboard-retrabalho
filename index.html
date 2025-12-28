@@ -36,7 +36,36 @@
     </div>
 
     <div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
-        <header class="text-center mb-8"> <h1 class="text-3xl md:text-4xl font-bold text-white mb-2"> PAINEL GESTÃO DE RETRABALHOS </h1> <p class="text-lg text-gray-400"> Sistema integrado de monitoramento e controle de retrabalhos </p> </header>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding: 25px; background-color: #1f2937; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 1px solid #374151;">
+        
+        <div>
+            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold; text-align: left; letter-spacing: 0.5px;">
+                PAINEL GESTÃO DE RETRABALHOS
+            </h1>
+            <p style="margin: 8px 0 0 0; color: #9ca3af; font-size: 16px; text-align: left;">
+                Sistema integrado de monitoramento e controle de retrabalhos.
+            </p>
+        </div>
+    
+        <div>
+            <img src="https://raw.githubusercontent.com/Demacaco/Dashboard-retrabalho/main/retrabalho.png" 
+                 alt="Ciclo de Retrabalho" 
+                 class="brightness-90 contrast-110 saturate-110"
+                 style="height: 130px; width: auto; object-fit: contain;">
+        </div>
+    
+    </div>
+    ```
+
+**Resumo visual de como tem que ficar o arquivo:**
+
+* Linha 38: `<div id="dashboard-content" ...>` (O container principal)
+* Linha 39: `<div style="display: flex; ...` (O código que mandei acima começa aqui)
+* ... (O resto do código que mandei) ...
+* Linha XX: `</div>` (Fecha o meu código)
+* Linha XX+1: `<section class="mb-8 ...">` (O começo dos seus cards de filtro)
+
+Faz essa substituição e pode dar o "Commit". Agora vai dar certo!
         
         <section class="mb-8 section-card rounded-xl p-6"> 
             <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4"> 
