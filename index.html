@@ -134,7 +134,7 @@
                 delete window[callbackName]; 
                 if (script.parentNode) { script.parentNode.removeChild(script); }
                 reject(new Error("Timeout: A requisição de dados demorou muito para responder."));
-            }, 15000); 
+            }, 45000); 
         });
     }
     function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
