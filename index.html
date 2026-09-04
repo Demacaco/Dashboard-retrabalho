@@ -3,24 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Gestão de Retrabalhos</title>
+    <title>Painel Tático - Retrabalhos</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; }
-        .chart-container { position: relative; width: 100%; height: 400px; }
-        .filter-btn.active { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        .chart-container { position: relative; width: 100%; }
+        .filter-btn.active { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); border-color: transparent; }
         #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0f172a, #1e293b); display: flex; justify-content: center; align-items: center; z-index: 9999; color: white; text-align: center; padding: 1rem; }
         .hidden { display: none !important; }
         .spinner { border: 4px solid rgba(59, 130, 246, 0.3); border-radius: 50%; border-top: 4px solid #3b82f6; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .kpi-card { background: linear-gradient(135deg, #1e293b, #334155); border-left: 4px solid #3b82f6; transition: all 0.3s ease; }
-        .section-card { background: linear-gradient(135deg, #1e293b, #334155); }
-        .brand-btn.active { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
-        .brand-btn { text-transform: capitalize; }
+        .brand-btn.active { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); border-color: transparent;}
+        .brand-btn { text-transform: uppercase; font-weight: 600; font-size: 0.75rem; border: 1px solid #475569; }
         #error-message { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background-color: #ef4444; color: white; padding: 10px 20px; border-radius: 8px; z-index: 10000; display: none; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        /* Custom scrollbar for brand filters */
+        #brand-filters-container::-webkit-scrollbar { height: 6px; }
+        #brand-filters-container::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
+        #brand-filters-container::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
     </style>
 </head>
 <body class="text-gray-300">
@@ -31,157 +33,223 @@
         <div class="flex flex-col items-center">
             <div class="spinner"></div>
             <p class="text-xl font-semibold">Carregando dados em tempo real...</p>
-            <p class="text-gray-400 mt-2">Sistema integrado de monitoramento</p>
+            <p class="text-gray-400 mt-2">Painel Tático B.O.</p>
         </div>
     </div>
 
     <div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; padding: 35px; background-color: #1f2937; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 1px solid #374151;">
         
-        <div style="flex: 1; padding-right: 40px;">
-            <h1 style="margin: 0; color: #ffffff; font-size: 42px; font-weight: 900; text-align: left; letter-spacing: 1px; line-height: 1.1;">
-                PAINEL GESTÃO DE RETRABALHOS
-            </h1>
-            <p style="margin: 15px 0 0 0; color: #9ca3af; font-size: 18px; text-align: left;">
-                Sistema integrado de monitoramento e controle de qualidade.
-            </p>
+        <!-- Alerta de Inatividade (Escondido por padrão) -->
+        <div id="inactivity-alert" class="hidden bg-red-900/40 border border-red-500/50 text-red-200 px-5 py-4 rounded-xl mb-6 flex items-center shadow-lg">
+            <span class="text-3xl mr-4">⚠️</span>
+            <div>
+                <h4 class="font-bold text-red-400 uppercase text-xs tracking-wider">Alerta de Ociosidade na Equipe</h4>
+                <p class="text-sm mt-1">Já se passaram <span id="inactivity-days" class="font-extrabold text-white text-lg mx-1"></span> dias sem nenhum novo registro de retrabalho no sistema.</p>
+            </div>
         </div>
-    
-        <div>
-            <img src="https://raw.githubusercontent.com/Demacaco/Dashboard-retrabalho/main/retrabalho.png" 
-                 alt="Ciclo de Retrabalho" 
-                 class="contrast-115"
-                 style="height: 180px; width: auto; object-fit: contain; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.7)); border-radius: 8px;">
-        </div>    
-    </div>
+
+        <!-- Novo Cabeçalho Tático -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-700/50 pb-4 mb-8">
+            <div class="flex items-center gap-3">
+                <div class="text-blue-500 text-4xl font-black tracking-tighter">📦</div>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-wide flex items-center gap-2">
+                        Controle de Qualidade <span class="text-gray-500 font-normal text-xl">(Retrabalhos)</span>
+                    </h1>
+                    <p class="text-gray-400 text-sm mt-1">Mapeamento de Necessidades vs. Posição de Estoque</p>
+                </div>
+            </div>
+            <div class="hidden md:flex border border-slate-700/50 rounded-lg px-4 py-2 bg-slate-800/30 text-sm mt-4 md:mt-0 shadow-inner">
+                <span class="text-gray-500 mr-2">👤 by</span>
+                <span class="font-bold text-gray-200">André Rezende</span>
+                <span class="text-gray-600 mx-2">|</span>
+                <span class="text-gray-400 text-xs mt-0.5">Dpto Estoque de Peças</span>
+            </div>
+        </div>
        
-        <section class="mb-8 section-card rounded-xl p-6"> 
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4"> 
-                <h2 class="text-xl font-bold text-white mb-4 md:mb-0">Filtrar por Período</h2> 
-                <div class="flex flex-wrap gap-2"> 
-                    <button onclick="filterByPeriod('today', this)" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300"> 📅 Hoje </button> 
-                    <button onclick="filterByPeriod('week', this)" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300"> 📊 Esta Semana </button> 
-                    <button onclick="filterByPeriod('month', this)" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300 active"> 📈 Este Mês </button> 
-                    <button onclick="filterByPeriod('all', this)" class="filter-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300"> 🗓️ Período Completo </button> 
+        <!-- Filtros Melhorados -->
+        <section class="mb-6 bg-slate-800/40 border border-slate-700/50 rounded-xl p-5"> 
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"> 
+                
+                <div class="flex flex-wrap items-center gap-2"> 
+                    <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">Período:</h2>
+                    <button onclick="filterByPeriod('today', this)" class="filter-btn bg-slate-800 hover:bg-slate-700 text-gray-300 px-4 py-1.5 rounded-full text-xs font-medium transition duration-300">HOJE</button> 
+                    <button onclick="filterByPeriod('week', this)" class="filter-btn bg-slate-800 hover:bg-slate-700 text-gray-300 px-4 py-1.5 rounded-full text-xs font-medium transition duration-300">SEMANA</button> 
+                    <button onclick="filterByPeriod('month', this)" class="filter-btn bg-slate-800 hover:bg-slate-700 text-gray-300 px-4 py-1.5 rounded-full text-xs font-medium transition duration-300 active">MÊS</button> 
+                    <button onclick="filterByPeriod('all', this)" class="filter-btn bg-slate-800 hover:bg-slate-700 text-gray-300 px-4 py-1.5 rounded-full text-xs font-medium transition duration-300">TUDO</button> 
+                    <span class="text-gray-700 mx-1">|</span>
+                    <input type="date" id="specific-date-filter" onchange="filterBySpecificDate(this.value)" class="bg-slate-900 border border-slate-700 text-gray-300 text-xs rounded-lg px-3 py-1.5 focus:ring-blue-500 focus:border-blue-500 outline-none">
                 </div> 
-            </div> 
-            <div class="mt-6"> 
-                <h3 class="text-lg font-semibold text-white mb-3">Filtrar por Marca</h3> 
-                <div id="brand-filters-container" class="flex flex-wrap gap-2"> 
-                </div> 
+
+                <div class="flex items-center gap-2 overflow-x-auto pb-1" id="brand-filters-container"> 
+                    <!-- Botões de marca -->
+                </div>
             </div> 
         </section>
         
-        <section class="mb-8 section-card rounded-xl p-6">
-            <h2 class="text-xl font-bold text-white mb-4">Buscar Registro por Código</h2>
-            <div class="flex flex-col md:flex-row gap-4">
-                <input type="text" id="search-input" placeholder="Digite o código da peça..." 
-                       class="flex-grow p-3 bg-slate-700 text-white rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button id="search-button" 
-                        class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-lg transition duration-300">
+        <!-- Cards de KPI Táticos -->
+        <section id="kpis" class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-5"> 
+            <div class="bg-[#1e293b] rounded-xl p-6 border-l-4 border-blue-500 shadow-lg flex flex-col justify-between"> 
+                <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                    <span class="text-base">🔥</span> VOL. (PEÇAS)
+                </h3>
+                <p id="total-items" class="text-5xl font-black text-white my-3 tracking-tight">0</p>
+                <p class="text-xs text-gray-400 font-medium">Quantidade total retrabalhada</p> 
+            </div> 
+            
+            <div class="bg-[#1e293b] rounded-xl p-6 border-l-4 border-emerald-500 shadow-lg flex flex-col justify-between"> 
+                <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                    <span class="text-base">✓</span> LANÇAMENTOS FEITOS
+                </h3>
+                <p id="total-entries" class="text-5xl font-black text-white my-3 tracking-tight">0</p> 
+                <p class="text-xs text-gray-400 font-medium">Registros individuais no sistema</p>
+            </div> 
+            
+            <div class="bg-[#1e293b] rounded-xl p-6 border-l-4 border-purple-500 shadow-lg flex flex-col justify-between"> 
+                <h3 class="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
+                    <span class="text-base">📋</span> SKUS ÚNICOS
+                </h3>
+                <p id="unique-skus" class="text-5xl font-black text-white my-3 tracking-tight">0</p> 
+                <p class="text-xs text-gray-400 font-medium">Variedade de códigos distintos</p>
+            </div> 
+        </section>
+
+        <!-- Busca de Registro -->
+        <section class="mb-8 bg-[#1e293b] border border-slate-700/50 rounded-xl p-6 shadow-md">
+            <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Localizar Registro Específico</h2>
+            <div class="flex flex-col md:flex-row gap-3">
+                <input type="text" id="search-input" placeholder="Digite o código da peça (SKU)..." 
+                       class="flex-grow p-3 bg-slate-900/50 text-white rounded-lg border border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <button id="search-button" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-lg transition duration-300 uppercase text-sm tracking-wider">
                     Buscar
                 </button>
             </div>
-            
-            <div id="search-results-container" class="mt-6 text-gray-300">
-                </div>
+            <div id="search-results-container" class="mt-4 text-gray-300"></div>
         </section>
-        <section id="kpis" class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6"> <div class="kpi-card rounded-xl p-6 text-center"> <h3 class="text-lg font-semibold text-gray-400">Total de Itens</h3> <p id="total-items" class="text-4xl font-bold text-blue-400 mt-2">0</p> </div> <div class="kpi-card rounded-xl p-6 text-center"> <h3 class="text-lg font-semibold text-gray-400">Registros</h3> <p id="total-entries" class="text-4xl font-bold text-green-400 mt-2">0</p> </div> <div class="kpi-card rounded-xl p-6 text-center"> <h3 class="text-lg font-semibold text-gray-400">Peças Únicas</h3> <p id="unique-skus" class="text-4xl font-bold text-purple-400 mt-2">0</p> </div> </section>
-        <section class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8"> <div class="section-card rounded-xl p-6"> <h2 class="text-xl font-bold text-white mb-4">Tendência de Retrabalhos</h2> <div class="chart-container"> <canvas id="trendChart"></canvas> </div> </div> <div class="section-card rounded-xl p-6"> <h2 class="text-xl font-bold text-white mb-4">Distribuição por Marca</h2> <div class="chart-container"> <canvas id="brandChart"></canvas> </div> </div> </section>
-        <section class="mb-8"> <div class="section-card rounded-xl p-6"> <h2 class="text-xl font-bold text-white mb-4">Atividade por Coletor</h2> <div id="collector-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> </div> </div> </section>
-        <footer class="text-center mt-12 text-gray-500 text-sm border-t border-gray-800 pt-6"> <p class="font-semibold">ANDRE REZENDE - Sistema de Controle de Retrabalhos © 2025</p> <p>Última atualização: <span id="update-timestamp" class="text-blue-400">--/--/---- --:--:--</span></p> </footer>
+
+        <!-- Gráficos Empilhados Verticalmente -->
+        <section class="mb-8 flex flex-col gap-6"> 
+            
+            <div class="bg-[#1e293b] rounded-xl p-6 shadow-lg border border-slate-700/50"> 
+                <h2 class="text-sm font-bold text-gray-300 uppercase tracking-wider mb-4">Tendência Histórica de Retrabalhos</h2> 
+                <div class="chart-container" style="height: 320px;"> 
+                    <canvas id="trendChart"></canvas> 
+                </div> 
+            </div> 
+            
+            <div class="bg-[#1e293b] rounded-xl p-6 shadow-lg border border-slate-700/50"> 
+                <h2 class="text-sm font-bold text-gray-300 uppercase tracking-wider mb-4">Distribuição do Volume por Marca</h2> 
+                <div class="chart-container" style="height: 350px;"> 
+                    <canvas id="brandChart"></canvas> 
+                </div> 
+            </div> 
+        </section>
+
+        <!-- Coletores -->
+        <section class="mb-8"> 
+            <div class="bg-[#1e293b] rounded-xl p-6 shadow-lg border border-slate-700/50"> 
+                <h2 class="text-sm font-bold text-gray-300 uppercase tracking-wider mb-5">Atividade por Coletor</h2> 
+                <div id="collector-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"> 
+                </div> 
+            </div> 
+        </section>
+
+        <footer class="text-center mt-12 text-gray-600 text-xs border-t border-slate-800/50 pt-6 pb-8 uppercase tracking-widest"> 
+            <p class="font-bold">Sistema de Controle de Retrabalhos © 2026</p> 
+            <p class="mt-2">Última atualização: <span id="update-timestamp" class="text-blue-500 font-semibold">--/--/---- --:--:--</span></p> 
+        </footer>
     </div>
 
 <script>
-    // COLE A NOVA URL AQUI:
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzN1KKS8EohoE3yApbvJkp7ftrizsJ2wk3F3P3BbSO2G65jgpXUYQGyqqmsG6ABBzXX/exec"; 
 
     let rawData = []; let trendChartInstance = null; let brandChartInstance = null; let activePeriodFilter = 'month'; let activeBrandFilter = 'all'; 
 
     function fetchDataWithJSONP() { 
-        console.log("Iniciando fetchDataWithJSONP..."); 
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
             const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-            console.log("Callback:", callbackName); 
             let timeoutId = null; 
 
             window[callbackName] = function(data) {
-                console.log("Callback executado:", callbackName); 
                 clearTimeout(timeoutId); 
                 delete window[callbackName];
                 if (script.parentNode) { script.parentNode.removeChild(script); }
-                if (data && data.success) { console.log("Dados recebidos com sucesso via JSONP."); resolve(data); } 
-                else { console.error("Erro retornado pelo script:", data ? data.error : 'Resposta inválida'); reject(new Error(data.error || 'Erro desconhecido retornado pelo script')); }
+                if (data && data.success) { resolve(data); } 
+                else { reject(new Error(data ? data.error : 'Resposta inválida')); }
             };
 
-            script.onerror = (event) => {
-                console.error("Erro no carregamento do script JSONP:", event); 
+            script.onerror = () => {
                 clearTimeout(timeoutId); 
                 delete window[callbackName];
                 if (script.parentNode) { script.parentNode.removeChild(script); }
-                reject(new Error('Falha ao carregar dados via JSONP. Verifique a URL do script, a conexão e o console do navegador.'));
+                reject(new Error('Falha ao carregar dados via JSONP.'));
             };
 
             const url = `${SCRIPT_URL}?path=data&callback=${callbackName}&v=${new Date().getTime()}`;
-            console.log("Carregando URL JSONP:", url); 
             script.src = url;
             document.body.appendChild(script);
 
             timeoutId = setTimeout(() => {
-                console.error("Timeout ao carregar dados JSONP."); 
                 delete window[callbackName]; 
                 if (script.parentNode) { script.parentNode.removeChild(script); }
-                reject(new Error("Timeout: A requisição de dados demorou muito para responder."));
+                reject(new Error("Timeout: A requisição demorou muito."));
             }, 45000); 
         });
     }
+
     function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
     function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
     function showDashboard() { document.getElementById('dashboard-content').classList.remove('hidden'); }
     function showErrorMessage(message) { 
-        console.warn("showError:", message); 
         const errorDiv = document.getElementById('error-message');
-        errorDiv.textContent = message || "Erro ao carregar dados. Verifique o console (F12).";
+        errorDiv.textContent = message || "Erro ao carregar dados.";
         errorDiv.style.display = 'block';
         setTimeout(() => { errorDiv.style.display = 'none'; }, 8000); 
     }
 
     async function fetchRealData() { 
-        console.log("Iniciando fetchRealData..."); 
         showLoading(); 
         try {
             const result = await fetchDataWithJSONP();
-            console.log("fetchDataWithJSONP concluído com sucesso."); 
             if (result && Array.isArray(result.data)) {
                 processData(result.data);
                 hideLoading(); 
                 showDashboard(); 
             } else {
-                console.error("Formato de dados inválido recebido:", result); 
-                throw new Error("Dados recebidos inválidos ou vazios do script.");
+                throw new Error("Dados inválidos do script.");
             }
         } catch (error) {
-            console.error('Erro final ao carregar ou processar dados:', error); 
-            showErrorMessage(`Falha ao carregar dados: ${error.message}. Verifique a conexão e o console (F12).`);
+            showErrorMessage(`Falha: ${error.message}`);
             hideLoading(); 
         }
     }
 
-    function processData(data) {
-        console.log("Iniciando processData...");
-        if (!Array.isArray(data)) { console.error("Erro grave: 'data' não é um array em processData:", data); throw new Error("Formato de dados interno inválido."); }
+    function checkInactivity(data) {
+        if (!data || data.length === 0) return;
+        const latestTimestamp = Math.max(...data.map(item => item.timestamp.getTime()));
+        const latestDate = new Date(latestTimestamp);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        latestDate.setHours(0, 0, 0, 0);
         
+        const diffTime = Math.abs(today - latestDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        const alertEl = document.getElementById('inactivity-alert');
+        if (diffDays > 3) {
+            alertEl.classList.remove('hidden');
+            document.getElementById('inactivity-days').textContent = diffDays;
+        } else {
+            alertEl.classList.add('hidden');
+        }
+    }
+
+    function processData(data) {
         rawData = data.map(item => {
-            
-            let dateValue = item.data || item.Data || item.timestamp || item.Timestamp || item["Timestamp data"] || item.date;
+            let dateValue = item.data || item.Data || item.timestamp || item.Timestamp || item.date;
             let dateObj = new Date(dateValue);
-            
-            if (isNaN(dateObj.getTime())) { 
-                console.warn("Data inválida detectada, movendo para 'inválido':", dateValue, item); 
-                dateObj = new Date('1970-01-01'); 
-            }
-            
+            if (isNaN(dateObj.getTime())) { dateObj = new Date('1970-01-01'); }
             return {
                 timestamp: dateObj,
                 date: dateObj.toISOString().split('T')[0],
@@ -192,17 +260,23 @@
                 location: item.localizacao || item.Localização || 'N/A' 
             };
         });
-        
-        console.log("rawData processado:", rawData.length, "itens");
+        checkInactivity(rawData);
         initializeApp();
     }
     
     function filterByPeriod(period, buttonElement) { 
-        console.log("Filtrando por período:", period); 
         activePeriodFilter = period;
+        document.getElementById('specific-date-filter').value = ''; // Limpa a data se clicar num botão
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         if(buttonElement) buttonElement.classList.add('active');
         updateDashboard(); 
+    }
+
+    function filterBySpecificDate(dateValue) {
+        if (!dateValue) return; 
+        activePeriodFilter = 'specific_date';
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        updateDashboard();
     }
 
     function applyPeriodFilter(data) { 
@@ -210,6 +284,7 @@
         const today = new Date(); 
         today.setHours(0, 0, 0, 0); 
         let startDate;
+        
         switch(activePeriodFilter) {
             case 'today':
                 startDate = new Date(today);
@@ -222,6 +297,9 @@
                 startDate = new Date(today);
                 startDate.setDate(1); 
                 return data.filter(item => item.timestamp >= startDate);
+            case 'specific_date':
+                const specificDateStr = document.getElementById('specific-date-filter').value;
+                return data.filter(item => item.date === specificDateStr);
             case 'all': 
             default: 
                 return data; 
@@ -229,137 +307,145 @@
     }
     
     function initializeApp() { 
-        console.log("Iniciando initializeApp..."); 
         setupBrandFilters(); 
         updateDashboard(); 
     }
 
     function setupBrandFilters() { 
-        console.log("Configurando filtros de marca..."); 
         const uniqueBrands = rawData && Array.isArray(rawData) ? [...new Set(rawData.map(item => item.brand).filter(Boolean))].sort() : [];
-        console.log("Marcas únicas:", uniqueBrands); 
         const brandContainer = document.getElementById('brand-filters-container'); brandContainer.innerHTML = ''; 
-        const allBtn = document.createElement('button'); allBtn.textContent = 'Todas as Marcas'; allBtn.dataset.brand = 'all'; allBtn.className = 'brand-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300'; if (activeBrandFilter === 'all') allBtn.classList.add('active'); brandContainer.appendChild(allBtn);
+        
+        const allBtn = document.createElement('button'); allBtn.textContent = 'TODAS'; allBtn.dataset.brand = 'all'; 
+        allBtn.className = 'brand-btn bg-slate-800 hover:bg-slate-700 text-gray-300 px-4 py-1.5 rounded-full transition duration-300'; 
+        if (activeBrandFilter === 'all') allBtn.classList.add('active'); 
+        brandContainer.appendChild(allBtn);
+        
         uniqueBrands.forEach(brand => {
-            const btn = document.createElement('button'); btn.textContent = brand; btn.dataset.brand = brand; btn.className = 'brand-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm transition duration-300'; if (activeBrandFilter === brand) btn.classList.add('active'); brandContainer.appendChild(btn);
+            const btn = document.createElement('button'); btn.textContent = brand; btn.dataset.brand = brand; 
+            btn.className = 'brand-btn bg-slate-800 hover:bg-slate-700 text-gray-300 px-4 py-1.5 rounded-full transition duration-300'; 
+            if (activeBrandFilter === brand) btn.classList.add('active'); 
+            brandContainer.appendChild(btn);
         });
-        const brandClickListener = (e) => {
+        
+        brandContainer.addEventListener('click', (e) => {
             if (e.target.classList.contains('brand-btn')) {
-                activeBrandFilter = e.target.dataset.brand; console.log("Filtrando por marca:", activeBrandFilter); 
-                document.querySelectorAll('#brand-filters-container .brand-btn').forEach(btn => { btn.classList.toggle('active', btn.dataset.brand === activeBrandFilter); });
+                activeBrandFilter = e.target.dataset.brand; 
+                document.querySelectorAll('#brand-filters-container .brand-btn').forEach(btn => { 
+                    btn.classList.toggle('active', btn.dataset.brand === activeBrandFilter); 
+                });
                 updateDashboard();
             }
-        };
-        brandContainer.removeEventListener('click', brandContainer.__clickListener); brandContainer.addEventListener('click', brandClickListener); brandContainer.__clickListener = brandClickListener; 
+        });
     }
     
     function updateDashboard() { 
-        console.log("Atualizando dashboard..."); 
         const dataToFilter = rawData && Array.isArray(rawData) ? rawData : [];
         let filteredData = applyPeriodFilter(dataToFilter); 
         if (activeBrandFilter !== 'all') { filteredData = filteredData.filter(item => item.brand === activeBrandFilter); }
-        console.log("Dados filtrados:", filteredData.length, "itens"); 
+        
         document.getElementById('total-items').textContent = filteredData.reduce((sum, item) => sum + (item.quantity || 0), 0).toLocaleString('pt-BR');
         document.getElementById('total-entries').textContent = filteredData.length.toLocaleString('pt-BR');
         document.getElementById('unique-skus').textContent = new Set(filteredData.map(item => item.sku).filter(sku => sku && sku !== 'N/A')).size.toLocaleString('pt-BR');
         
-        // As funções de renderização vêm *depois* de atualizar os KPIs
         renderTrendChart(filteredData); 
         renderBrandChart(filteredData); 
         renderCollectorCards(filteredData);
         
         document.getElementById('update-timestamp').textContent = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
-        console.log("Dashboard atualizado."); 
     }
     
     function renderTrendChart(data) { 
         const trendData = data.reduce((acc, item) => { const dateStr = item.date; if (dateStr) acc[dateStr] = (acc[dateStr] || 0) + (item.quantity || 0); return acc; }, {});
         const sortedDates = Object.keys(trendData).sort(); 
-        const labels = sortedDates.map(dateStr => { 
-            const parts = dateStr.split('-'); 
-            return `${parts[2]}/${parts[1]}`; 
-        }); 
+        const labels = sortedDates.map(dateStr => { const parts = dateStr.split('-'); return `${parts[2]}/${parts[1]}`; }); 
         const chartData = sortedDates.map(dateStr => trendData[dateStr]);
         
-        // ========== INÍCIO DA CORREÇÃO DO GRÁFICO ==========
         const ctx = document.getElementById('trendChart').getContext('2d'); 
-        // ========== FIM DA CORREÇÃO DO GRÁFICO ==========
-        
         if (trendChartInstance) trendChartInstance.destroy();
-        trendChartInstance = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'Quantidade', data: chartData, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 3, tension: 0.4 }] }, options: { maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, ticks: { color: '#d1d5db' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, x: { ticks: { color: '#d1d5db' }, grid: { display: false } } }, plugins: { legend: { display: false } } } });
+        trendChartInstance = new Chart(ctx, { 
+            type: 'line', 
+            data: { labels, datasets: [{ label: 'Qtd. de Peças', data: chartData, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 3, tension: 0.3, pointBackgroundColor: '#fff', pointRadius: 4 }] }, 
+            options: { maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }, x: { ticks: { color: '#94a3b8' }, grid: { display: false } } }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f172a', titleColor: '#fff', bodyColor: '#cbd5e1', borderColor: '#334155', borderWidth: 1 } } } 
+        });
     }
     
     function renderBrandChart(data) { 
         const brandSummary = data.reduce((acc, item) => { const brand = item.brand || 'Sem Marca'; acc[brand] = (acc[brand] || 0) + (item.quantity || 0); return acc; }, {});
-        const sortedBrands = Object.entries(brandSummary).sort(([,a], [,b]) => b - a).slice(0, 8); const labels = sortedBrands.map(item => item[0]); const chartData = sortedBrands.map(item => item[1]);
-        const ctx = document.getElementById('brandChart').getContext('2d'); if (brandChartInstance) brandChartInstance.destroy();
-        brandChartInstance = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ label: 'Quantidade', data: chartData, backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#8b5cf6', '#eab308', '#06b6d4', '#84cc16'], borderWidth: 2, borderColor: '#1e293b' }] }, options: { maintainAspectRatio: false, responsive: true, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '#d1d5db', font: { size: 12 }, padding: 15, 
-            callback: function(value, index) {
-                return value.charAt(0).toUpperCase() + value.slice(1);
-            }
-        } } } } });
+        const sortedBrands = Object.entries(brandSummary).sort(([,a], [,b]) => b - a).slice(0, 8); 
+        const labels = sortedBrands.map(item => item[0]); const chartData = sortedBrands.map(item => item[1]);
+        
+        const ctx = document.getElementById('brandChart').getContext('2d'); 
+        if (brandChartInstance) brandChartInstance.destroy();
+        brandChartInstance = new Chart(ctx, { 
+            type: 'bar', 
+            data: { labels, datasets: [{ label: 'Volume por Marca', data: chartData, backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#64748b'], borderRadius: 6 }] }, 
+            options: { maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }, x: { ticks: { color: '#94a3b8', font: {size: 11}, callback: function(val, index) { return this.getLabelForValue(val).toUpperCase(); } }, grid: { display: false } } }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f172a', titleColor: '#fff', bodyColor: '#cbd5e1' } } } 
+        });
     }
 
     function renderCollectorCards(data) { 
         const collectorSummary = data.reduce((acc, item) => { const collector = item.collector || 'Desconhecido'; acc[collector] = (acc[collector] || 0) + 1; return acc; }, {});
-        const sortedCollectors = Object.entries(collectorSummary).sort(([,a], [,b]) => b - a); const container = document.getElementById('collector-container'); container.innerHTML = ''; 
+        const sortedCollectors = Object.entries(collectorSummary).sort(([,a], [,b]) => b - a); 
+        const container = document.getElementById('collector-container'); container.innerHTML = ''; 
+        
         sortedCollectors.forEach(([collectorId, count], index) => {
-            const rank = index + 1; const rankColors = { 1: 'bg-yellow-500', 2: 'bg-gray-400', 3: 'bg-orange-500' }; const card = document.createElement('div'); card.className = 'bg-slate-800 rounded-lg p-4 hover:bg-slate-700 transition duration-300';
-            card.innerHTML = `<div class="flex items-center justify-between"> <div class="flex items-center"> <div class="w-8 h-8 ${rankColors[rank] || 'bg-slate-600'} rounded-full flex items-center justify-center text-white font-bold text-sm mr-3"> ${rank} </div> <div> <p class="font-semibold text-white">${collectorId}</p> <p class="text-sm text-gray-400">${count} registro${count !== 1 ? 's' : ''}</p> </div> </div> </div>`;
+            const rankColors = { 1: 'bg-yellow-500 text-yellow-900', 2: 'bg-slate-300 text-slate-800', 3: 'bg-orange-500 text-orange-900' }; 
+            const rankStyle = rankColors[index + 1] || 'bg-slate-700 text-slate-300';
+            
+            const card = document.createElement('div'); 
+            card.className = 'bg-slate-800/60 border border-slate-700/50 rounded-lg p-4 hover:bg-slate-700 transition duration-300 flex items-center justify-between';
+            card.innerHTML = `
+                <div class="flex flex-col"> 
+                    <p class="font-bold text-gray-200 text-sm truncate uppercase tracking-wider">${collectorId}</p> 
+                    <p class="text-xs text-blue-400 font-medium mt-1">${count} REGISTRO${count !== 1 ? 'S' : ''}</p> 
+                </div>
+                <div class="w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${rankStyle}">
+                    #${index + 1}
+                </div>`;
             container.appendChild(card);
         });
     }
-
-// ========== FUNÇÃO DE BUSCA (CORRIGIDA) ==========
 
     function setupSearch() {
         const searchButton = document.getElementById('search-button');
         const searchInput = document.getElementById('search-input');
         const resultsContainer = document.getElementById('search-results-container');
 
-        if (!searchButton || !searchInput || !resultsContainer) {
-            console.error("Elementos da busca não encontrados. A busca não vai funcionar.");
-            return;
-        }
+        if (!searchButton || !searchInput || !resultsContainer) return;
 
         const performSearch = () => {
             const query = searchInput.value.trim().toLowerCase();
             if (query === "") {
-                resultsContainer.innerHTML = '<p class="text-yellow-400">Por favor, digite um código para buscar.</p>';
+                resultsContainer.innerHTML = '<p class="text-yellow-500 text-sm">Por favor, digite um código para buscar.</p>';
                 return;
             }
 
-            // --- CORREÇÃO AQUI ---
-            // Adicionamos .toString() para garantir que números também sejam tratados como texto
-            const results = rawData.filter(item => 
-                item.sku && item.sku.toString().toLowerCase().includes(query)
-            );
-            // --- FIM DA CORREÇÃO ---
+            const results = rawData.filter(item => item.sku && item.sku.toString().toLowerCase().includes(query));
 
             if (results.length === 0) {
-                resultsContainer.innerHTML = '<p class="text-red-400">Nenhum registro encontrado para esse código.</p>';
+                resultsContainer.innerHTML = '<p class="text-red-400 text-sm">Nenhum registro encontrado para este SKU.</p>';
             } else {
                 results.sort((a, b) => b.timestamp - a.timestamp);
 
                 let html = `
-                    <p class="text-green-400 mb-3">${results.length} registro(s) encontrado(s):</p>
-                    <div class="overflow-x-auto rounded-lg bg-slate-800">
-                        <table class="min-w-full divide-y divide-slate-700">
-                            <thead class="bg-slate-900">
+                    <p class="text-emerald-400 text-sm font-bold mb-3 uppercase tracking-wider">${results.length} resultado(s) localizado(s):</p>
+                    <div class="overflow-x-auto rounded-lg border border-slate-700 shadow-inner">
+                        <table class="min-w-full divide-y divide-slate-700 bg-slate-800/50">
+                            <thead class="bg-slate-900/80">
                                 <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Data</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Coletor</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Código</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Qtd.</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Data</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Coletor</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">SKU</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Qtd.</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-700">
+                            <tbody class="divide-y divide-slate-700/50">
                                 ${results.map(item => `
-                                    <tr>
-                                        <td class="px-4 py-3 whitespace-nowrap">${new Date(item.timestamp).toLocaleDateString('pt-BR')}</td>
-                                        <td class="px-4 py-3 whitespace-nowrap font-medium">${item.collector}</td>
-                                        <td class="px-4 py-3 whitespace-nowrap">${item.sku}</td>
-                                        <td class="px-4 py-3 whitespace-nowrap">${item.quantity}</td>
+                                    <tr class="hover:bg-slate-700/30 transition-colors">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">${new Date(item.timestamp).toLocaleDateString('pt-BR')}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-blue-400">${item.collector}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-200">${item.sku}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-white">${item.quantity}</td>
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -371,19 +457,12 @@
         };
 
         searchButton.addEventListener('click', performSearch);
-        
-        searchInput.addEventListener('keyup', (event) => {
-            if (event.key === 'Enter') {
-                performSearch();
-            }
-        });
+        searchInput.addEventListener('keyup', (event) => { if (event.key === 'Enter') performSearch(); });
     }
 
-    // ========== EVENT LISTENERS (LIGANDO TUDO) ==========
     document.addEventListener('DOMContentLoaded', fetchRealData);
     document.addEventListener('DOMContentLoaded', setupSearch);
-    
-    setInterval(fetchRealData, 7200000); // Atualiza a cada 2 horas
+    setInterval(fetchRealData, 7200000);
 </script>
 </body>
 </html>
