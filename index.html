@@ -37,37 +37,49 @@
         </div>
     </div>
 
-    <div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
+<div id="dashboard-content" class="container mx-auto p-4 md:p-8 max-w-7xl hidden">
         
-        <!-- Alerta de Inatividade (Escondido por padrão) -->
-        <div id="inactivity-alert" class="hidden bg-red-900/40 border border-red-500/50 text-red-200 px-5 py-4 rounded-xl mb-6 flex items-center shadow-lg">
-            <span class="text-3xl mr-4">⚠️</span>
-            <div>
-                <h4 class="font-bold text-red-400 uppercase text-xs tracking-wider">Alerta de Ociosidade na Equipe</h4>
-                <p class="text-sm mt-1">Já se passaram <span id="inactivity-days" class="font-extrabold text-white text-lg mx-1"></span> dias sem nenhum novo registro de retrabalho no sistema.</p>
+        <!-- NOVO CABEÇALHO (Padrão Tático B.O. Fiel à Referência) -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center pb-5 mb-5 border-b border-slate-700/50">
+            <div class="flex items-center gap-3">
+                
+                <!-- Ícone das Caixas Azuis (Reconstruído em CSS) -->
+                <div class="flex flex-col gap-0.5 mt-1">
+                    <div class="flex justify-center"><div class="w-4 h-4 bg-blue-500 rounded-sm"></div></div>
+                    <div class="flex gap-0.5">
+                        <div class="w-4 h-4 bg-blue-500 rounded-sm"></div>
+                        <div class="w-4 h-4 bg-blue-500 rounded-sm"></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <!-- Título com a tipografia exata -->
+                    <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-wide">
+                        Painel Tático Retrabalhos
+                    </h1>
+                    <p class="text-gray-300 text-sm mt-0.5">Mapeamento de Necessidades vs. Posição de Estoque</p>
+                </div>
+            </div>
+            
+            <!-- Tag do Usuário Padrão B.O. -->
+            <div class="hidden md:flex items-center border border-slate-600/70 rounded px-3 py-1.5 bg-transparent text-sm mt-4 md:mt-0">
+                <span class="text-gray-500 mr-2 font-medium">👤 by</span>
+                <span class="font-bold text-white tracking-wide">André Rezende</span>
+                <span class="text-gray-600 mx-2">|</span>
+                <span class="text-gray-400">Dpto Estoque de Peças</span>
             </div>
         </div>
 
-        <!-- Novo Cabeçalho Tático -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-700/50 pb-4 mb-8">
-            <div class="flex items-center gap-3">
-                <div class="text-blue-500 text-4xl font-black tracking-tighter">📦</div>
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-wide flex items-center gap-2">
-                        Controle de Qualidade <span class="text-gray-500 font-normal text-xl">(Retrabalhos)</span>
-                    </h1>
-                    <p class="text-gray-400 text-sm mt-1">Mapeamento de Necessidades vs. Posição de Estoque</p>
-                </div>
-            </div>
-            <div class="hidden md:flex border border-slate-700/50 rounded-lg px-4 py-2 bg-slate-800/30 text-sm mt-4 md:mt-0 shadow-inner">
-                <span class="text-gray-500 mr-2">👤 by</span>
-                <span class="font-bold text-gray-200">André Rezende</span>
-                <span class="text-gray-600 mx-2">|</span>
-                <span class="text-gray-400 text-xs mt-0.5">Dpto Estoque de Peças</span>
+        <!-- Alerta de Inatividade (Movido para BAIXO do título) -->
+        <div id="inactivity-alert" class="hidden bg-red-900/30 border border-red-500/50 text-red-200 px-5 py-4 rounded-xl mb-6 flex items-center shadow-lg">
+            <span class="text-2xl mr-4">⚠️</span>
+            <div>
+                <h4 class="font-bold text-red-400 uppercase text-xs tracking-wider">Alerta de Ociosidade na Equipe</h4>
+                <p class="text-sm mt-0.5">Já se passaram <span id="inactivity-days" class="font-extrabold text-white text-lg mx-1"></span> dias sem nenhum novo registro de retrabalho no sistema.</p>
             </div>
         </div>
        
-        <!-- Filtros Melhorados -->
+        <!-- Filtros Melhorados com Data Destacada -->
         <section class="mb-6 bg-slate-800/40 border border-slate-700/50 rounded-xl p-5"> 
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"> 
                 
@@ -77,12 +89,18 @@
                     <button onclick="filterByPeriod('week', this)" class="filter-btn bg-slate-800 hover:bg-slate-700 text-gray-300 px-4 py-1.5 rounded-full text-xs font-medium transition duration-300">SEMANA</button> 
                     <button onclick="filterByPeriod('month', this)" class="filter-btn bg-slate-800 hover:bg-slate-700 text-gray-300 px-4 py-1.5 rounded-full text-xs font-medium transition duration-300 active">MÊS</button> 
                     <button onclick="filterByPeriod('all', this)" class="filter-btn bg-slate-800 hover:bg-slate-700 text-gray-300 px-4 py-1.5 rounded-full text-xs font-medium transition duration-300">TUDO</button> 
-                    <span class="text-gray-700 mx-1">|</span>
-                    <input type="date" id="specific-date-filter" onchange="filterBySpecificDate(this.value)" class="bg-slate-900 border border-slate-700 text-gray-300 text-xs rounded-lg px-3 py-1.5 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    
+                    <span class="text-gray-700 mx-1 hidden sm:block">|</span>
+                    
+                    <!-- Campo de Data (Agora mais claro e com rótulo) -->
+                    <div class="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1">
+                        <span class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">📅 Buscar Data:</span>
+                        <input type="date" id="specific-date-filter" onchange="filterBySpecificDate(this.value)" class="bg-transparent text-gray-300 text-xs focus:outline-none focus:ring-0 cursor-pointer w-full">
+                    </div>
                 </div> 
 
                 <div class="flex items-center gap-2 overflow-x-auto pb-1" id="brand-filters-container"> 
-                    <!-- Botões de marca -->
+                    <!-- Botões de marca (injetados via JS) -->
                 </div>
             </div> 
         </section>
