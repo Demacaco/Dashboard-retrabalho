@@ -161,17 +161,20 @@
     </div>
 
 <script>
+    // 1. COLE A SUA URL REAL DO GOOGLE APPS SCRIPT AQUI DENTRO DAS ASPAS:
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzN1KKS8EohoE3yApbvJkp7ftrizsJ2wk3F3P3BbSO2G65jgpXUYQGyqqmsG6ABBzXX/exec"; 
 
     let rawData = []; let trendChartInstance = null; let brandChartInstance = null; let activePeriodFilter = 'month'; let activeBrandFilter = 'all'; 
 
     function fetchDataWithJSONP() { 
+        console.log("3. Criando requisição JSONP...");
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
             const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
             let timeoutId = null; 
 
             window[callbackName] = function(data) {
+                console.log("5. Dados recebidos do Google com sucesso!");
                 clearTimeout(timeoutId); 
                 delete window[callbackName];
                 if (script.parentNode) { script.parentNode.removeChild(script); }
@@ -180,44 +183,60 @@
             };
 
             script.onerror = () => {
+                console.error("ERRO: O navegador bloqueou a requisição (Link quebrado ou sem permissão).");
                 clearTimeout(timeoutId); 
                 delete window[callbackName];
                 if (script.parentNode) { script.parentNode.removeChild(script); }
-                reject(new Error('Falha ao carregar dados via JSONP.'));
+                reject(new Error('Falha de conexão com o Google. O link pode estar errado.'));
             };
 
             const url = `${SCRIPT_URL}?path=data&callback=${callbackName}&v=${new Date().getTime()}`;
+            console.log("4. Acessando URL:", url);
             script.src = url;
             document.body.appendChild(script);
 
             timeoutId = setTimeout(() => {
+                console.error("ERRO: Timeout estourou após 25 segundos.");
                 delete window[callbackName]; 
                 if (script.parentNode) { script.parentNode.removeChild(script); }
-                reject(new Error("Timeout: A requisição demorou muito."));
-            }, 45000); 
+                reject(new Error("Timeout: O Google demorou mais de 25 segundos para responder."));
+            }, 25000); // Reduzi o tempo para 25s para você não ter que esperar tanto no teste
         });
     }
 
     function showLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
     function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
     function showDashboard() { document.getElementById('dashboard-content').classList.remove('hidden'); }
+    
     function showErrorMessage(message) { 
+        console.warn("ALERTA NA TELA:", message);
         const errorDiv = document.getElementById('error-message');
         errorDiv.textContent = message || "Erro ao carregar dados.";
         errorDiv.style.display = 'block';
-        setTimeout(() => { errorDiv.style.display = 'none'; }, 8000); 
+        setTimeout(() => { errorDiv.style.display = 'none'; }, 10000); 
     }
 
     async function fetchRealData() { 
+        console.log("1. Inicializando carregamento do painel...");
         showLoading(); 
+
+        // Trava de Segurança: Verifica se você esqueceu de trocar a URL
+        if (SCRIPT_URL === "COLE_SUA_URL_AQUI" || SCRIPT_URL.includes("AKfycbzN1KKS8E")) {
+            showErrorMessage("⚠️ ATENÇÃO: Você esqueceu de colar a sua URL real do Apps Script na variável SCRIPT_URL!");
+            hideLoading();
+            return;
+        }
+
         try {
+            console.log("2. Chamando fetchDataWithJSONP...");
             const result = await fetchDataWithJSONP();
             if (result && Array.isArray(result.data)) {
+                console.log("6. Iniciando processamento de " + result.data.length + " linhas...");
                 processData(result.data);
                 hideLoading(); 
                 showDashboard(); 
             } else {
-                throw new Error("Dados inválidos do script.");
+                throw new Error("O Google retornou uma resposta vazia ou inválida.");
             }
         } catch (error) {
             showErrorMessage(`Falha: ${error.message}`);
@@ -266,7 +285,7 @@
     
     function filterByPeriod(period, buttonElement) { 
         activePeriodFilter = period;
-        document.getElementById('specific-date-filter').value = ''; // Limpa a data se clicar num botão
+        document.getElementById('specific-date-filter').value = ''; 
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         if(buttonElement) buttonElement.classList.add('active');
         updateDashboard(); 
@@ -339,6 +358,7 @@
     }
     
     function updateDashboard() { 
+        console.log("7. Atualizando tela com filtros...");
         const dataToFilter = rawData && Array.isArray(rawData) ? rawData : [];
         let filteredData = applyPeriodFilter(dataToFilter); 
         if (activeBrandFilter !== 'all') { filteredData = filteredData.filter(item => item.brand === activeBrandFilter); }
