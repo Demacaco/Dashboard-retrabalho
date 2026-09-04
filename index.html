@@ -234,12 +234,12 @@
         setTimeout(() => { errorDiv.style.display = 'none'; }, 10000); 
     }
 
-    async function fetchRealData() { 
+async function fetchRealData() { 
         console.log("1. Inicializando carregamento do painel...");
         showLoading(); 
 
-        // Trava de Segurança: Verifica se você esqueceu de trocar a URL
-        if (SCRIPT_URL === "COLE_SUA_URL_AQUI" || SCRIPT_URL.includes("AKfycbzN1KKS8E")) {
+        // Trava de Segurança Corrigida (Apenas verifica se o texto é o padrão)
+        if (SCRIPT_URL === "COLE_SUA_URL_AQUI") {
             showErrorMessage("⚠️ ATENÇÃO: Você esqueceu de colar a sua URL real do Apps Script na variável SCRIPT_URL!");
             hideLoading();
             return;
@@ -261,7 +261,6 @@
             hideLoading(); 
         }
     }
-
     function checkInactivity(data) {
         if (!data || data.length === 0) return;
         const latestTimestamp = Math.max(...data.map(item => item.timestamp.getTime()));
